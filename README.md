@@ -9,7 +9,7 @@
 ### Reponsibilities
 
 
-# Code Information H
+# Code Information
 ### Function
 ### Modules
 ### Instructions for the user
