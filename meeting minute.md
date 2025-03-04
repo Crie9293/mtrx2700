@@ -23,3 +23,6 @@
 * Qianhui Cao
 ### Agenda items
 * Assignment 1, section 1.1, 1.2, 1.3
+#### Roles
+* 1.3 Exercise 1: Daniel Maynard & Qianhui Cao
+* 1.4 Exercise 2: Callum Riethmuller & Nicholas Tika
