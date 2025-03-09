@@ -1,0 +1,69 @@
+@ Not sure if work or not
+.syntax unified
+.thumb
+
+.global main
+
+.data
+ascii_string: .asciz "madam"   
+
+.text
+main:
+    LDR  R1, =ascii_string	@ Load string address into R1
+    BL   is_palindrome   	@ Call the palindrome function
+    
+    B    main            @ Infinite loop after function call
+
+@ Function: is_palindrome
+@ Input: R1 (Pointer to the string)
+@ Output: R0 = 1 if palindrome, 0 if not
+is_palindrome:
+    PUSH {LR}            @ Save return address
+    
+    MOV  R2, R1          @ R2 = Start pointer
+    BL   str_length      @ Get string length in R0
+    
+    SUB  R3, R1, #1      @ R3 = Address of last character (temporary adjustment)
+    ADD  R3, R3, R0      @ Adjust R3 to last valid character
+
+palindrome_loop:
+    CMP  R2, R3          @ Check if pointers crossed
+    BGE  palindrome_yes  @ If they meet/cross, it's a palindrome
+
+    LDRB R4, [R2]        @ Load character at start pointer
+    LDRB R5, [R3]        @ Load character at end pointer
+    CMP  R4, R5          @ Compare characters
+    BNE  palindrome_no   @ If not equal, not a palindrome
+
+    ADD  R2, R2, #1      @ Move start pointer forward
+    SUB  R3, R3, #1      @ Move end pointer backward
+    B    palindrome_loop @ Continue loop
+
+palindrome_yes:
+    MOV  R0, #1          @ Return 1 (palindrome)
+    B done
+
+palindrome_no:
+    MOV  R0, #0          @ Return 0 (not a palindrome)
+    B done
+
+done:
+	B done         @ Infinite loop to stop the flow
+
+@ Function: str_length
+@ Input: R1 (Pointer to string)
+@ Output: R0 (String length)
+str_length:
+    MOV  R0, #0          @ Initialize length counter
+	BX LR
+	
+length_loop:
+    LDRB R3, [R1, R0]    @ Load character
+    CMP  R3, #0          @ Check for null terminator
+    BEQ  length_done     @ If null, stop counting
+
+    ADD  R0, R0, #1      @ Increment counter
+    B    length_loop     @ Repeat
+
+length_done:
+    BX LR              @ Return
