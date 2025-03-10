@@ -8,62 +8,118 @@
 ascii_string: .asciz "madam"   
 
 .text
-main:
-    LDR  R1, =ascii_string	@ Load string address into R1
-    BL   is_palindrome   	@ Call the palindrome function
-    
-    B    main            @ Infinite loop after function call
+Exercise1b:
 
-@ Function: is_palindrome
-@ Input: R1 (Pointer to the string)
-@ Output: R0 = 1 if palindrome, 0 if not
+
+ LDR R1, =ascii_string @ Load string address into R1
+
+
+ MOV R3, R1 @ Set R3 to be the first value in string
+
+
+ MOV R4, R1 @ Passeed onto functioni to set to last value in string
+
+
+ 
+
+
+str_length: @ Find the length of the string for R4
+
+
+ LDRB R5, [R4] @ Load bit from R4 into R5
+
+
+ CMP R5, #0 @ Checks for null terminator in string
+
+
+ BEQ last_char @ Keeps looping until null terminator reached
+
+
+ 
+
+
+ ADD R4, R4, #1 @ Increment R4 to move to next character
+
+
+ B str_length @ Loop until null terminator is found
+
+
+ 
+
+
+last_char:
+
+
+ SUB R4, R4, #1 @ Move R4 back to the last valid character
+
+
+ 
+
+
+loop_palindrome:
+
+
+ CMP R3, R4 @ Checks if the 2 pointers have met or crossed each other
+
+
+ BGE is_palindrome @ String is a palindrome if this is excecuted
+
+
+ LDRB R5, [R3], #1 @ Set the values of R5 to R3 to be compared then increments R3
+
+
+ LDRB R6, [R4], #-1 @ Same as above but decrement for the last pointer
+
+
+ 
+
+
+ CMP R5, R6 @ Checks the value of the 2 characters (equal or not)
+
+
+ BNE not_palindrome @ If not equal, braccnhes to another function
+
+
+ 
+
+
+ B loop_palindrome @ Keeps looping in this function until all
+
+
+ @ characters are checked or reached a terminating point
+
+
+ 
+
+
 is_palindrome:
-    PUSH {LR}            @ Save return address
-    
-    MOV  R2, R1          @ R2 = Start pointer
-    BL   str_length      @ Get string length in R0
-    
-    SUB  R3, R1, #1      @ R3 = Address of last character (temporary adjustment)
-    ADD  R3, R3, R0      @ Adjust R3 to last valid character
 
-palindrome_loop:
-    CMP  R2, R3          @ Check if pointers crossed
-    BGE  palindrome_yes  @ If they meet/cross, it's a palindrome
 
-    LDRB R4, [R2]        @ Load character at start pointer
-    LDRB R5, [R3]        @ Load character at end pointer
-    CMP  R4, R5          @ Compare characters
-    BNE  palindrome_no   @ If not equal, not a palindrome
+ MOV R2, #1 @ Initialize R2 to 1 (string is a palindrome)
 
-    ADD  R2, R2, #1      @ Move start pointer forward
-    SUB  R3, R3, #1      @ Move end pointer backward
-    B    palindrome_loop @ Continue loop
 
-palindrome_yes:
-    MOV  R0, #1          @ Return 1 (palindrome)
-    B done
+ B done
 
-palindrome_no:
-    MOV  R0, #0          @ Return 0 (not a palindrome)
-    B done
+
+ 
+
+
+not_palindrome:
+
+
+ MOV R2, #0 @ Initialize R2 to 0 (string is not a palindrome)
+
+
+ B done
+
+
+ 
+
 
 done:
-	B done         @ Infinite loop to stop the flow
 
-@ Function: str_length
-@ Input: R1 (Pointer to string)
-@ Output: R0 (String length)
-str_length:
-    MOV  R0, #0          @ Initialize length counter
-	BX LR
-	
-length_loop:
-    LDRB R3, [R1, R0]    @ Load character
-    CMP  R3, #0          @ Check for null terminator
-    BEQ  length_done     @ If null, stop counting
 
-    ADD  R0, R0, #1      @ Increment counter
-    B    length_loop     @ Repeat
+ B done @ Infinite loop to stop the program (or put termination code if needed)
 
-length_done:
-    BX LR              @ Return
+
+ 
