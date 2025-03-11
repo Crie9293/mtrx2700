@@ -5,7 +5,7 @@
 #include "initialise.s"
 
 .data
-ascii_string: .asciz "vowels" @ Define ascii string
+ascii_string: .asciz "aaaabba" @ Define ascii string
 
 .global Exercise2d
 
@@ -15,68 +15,141 @@ Exercise2d:
 	BL initialise_discovery_board
 
 	LDR R0, =ascii_string 		@ Loads the string into R0
-	BL count_vowel
+	BL count_letter
 
-	@LED PART (NOT WORKINGm IGNORE)
-	MOV R2, R1
-
-	MOV R3, #0			@ Clear R3
-	MOV R4, #1			@ Start the bitmask for LED 1
-	
-
-	loop_control_LED:
-		CMP R2, #0
-		BEQ end_control_LED
-        ORR R3, R3, R4                     @ Set the appropriate bit in R3 for the LED
-        LSR R2, R2, #1                     @ Shift vowel count (decrement by 1)
-        LSL R4, R4, #1                     @ Shift the LED bitmask to the next LED
-        B loop_control_LED
-
-    end_control_LED:
-    @ Now, R3 contains a bitmask where each bit corresponds to an LED (based on the vowel count)
-    @ Use this bitmask to control the LEDs (e.g., write it to the GPIO register)
-    LDR R0, =GPIOE                         @ Load GPIO port address (adjust this based on your platform)
-    STR R3, [R0, #ODR]                     @ Store the bitmask in the output data register to control LEDs
-
-    BX LR                                  @ Return from the function
-
-
-count_vowel:
+count_letter:
     MOV R4, R0           		@ R4 = Pointer to input string
-    MOV R5, #0            		@ R5 = Vowel count (initialize to 0)
+    MOV R5, #0b0            		@ R5 = Vowel count (initialize to 0)
+    MOV R7, #0b0					@ R7 = Consonant count (initialize to 0)
 
-vowel_loop:
+letter_loop:
     LDRB R6, [R4], #1     @ Load byte (character) and advance pointer
     CMP R6, #0            @ Check if end of string (null terminator)
     BEQ done              @ If yes, exit loop
 
     @ Check for vowels (a, e, i, o, u, A, E, I, O, U)
     CMP R6, #'a'
-    BEQ inc_count
+    BEQ inc_count_vowel
     CMP R6, #'e'
-    BEQ inc_count
+    BEQ inc_count_vowel
     CMP R6, #'i'
-    BEQ inc_count
+    BEQ inc_count_vowel
     CMP R6, #'o'
-    BEQ inc_count
+    BEQ inc_count_vowel
     CMP R6, #'u'
-    BEQ inc_count
+    BEQ inc_count_vowel
     CMP R6, #'A'
-    BEQ inc_count
+    BEQ inc_count_vowel
     CMP R6, #'E'
-    BEQ inc_count
+    BEQ inc_count_vowel
     CMP R6, #'I'
-    BEQ inc_count
+    BEQ inc_count_vowel
     CMP R6, #'O'
-    BEQ inc_count
+    BEQ inc_count_vowel
     CMP R6, #'U'
-    BEQ inc_count
-    B vowel_loop                @ Continue loop if not a vowel
+    BEQ inc_count_vowel
 
-inc_count:
+    @ Check for consonants (anythhing other than vowels)
+    @ Fix using ascii range
+    CMP R6, #'b'
+    BEQ inc_count_consonant
+	CMP R6, #'B'
+    BEQ inc_count_consonant
+    CMP R6, #'c'
+    BEQ inc_count_consonant
+    CMP R6, #'C'
+    BEQ inc_count_consonant
+    CMP R6, #'d'
+    BEQ inc_count_consonant
+    CMP R6, #'D'
+    BEQ inc_count_consonant
+    CMP R6, #'f'
+    BEQ inc_count_consonant
+    CMP R6, #'F'
+    BEQ inc_count_consonant
+    CMP R6, #'g'
+    BEQ inc_count_consonant
+    CMP R6, #'G'
+    BEQ inc_count_consonant
+    CMP R6, #'h'
+    BEQ inc_count_consonant
+    CMP R6, #'H'
+    BEQ inc_count_consonant
+    CMP R6, #'j'
+    BEQ inc_count_consonant
+    CMP R6, #'J'
+    BEQ inc_count_consonant
+    CMP R6, #'k'
+    BEQ inc_count_consonant
+    CMP R6, #'K'
+    BEQ inc_count_consonant
+    CMP R6, #'l'
+    BEQ inc_count_consonant
+    CMP R6, #'L'
+    BEQ inc_count_consonant
+    CMP R6, #'m'
+    BEQ inc_count_consonant
+    CMP R6, #'M'
+    BEQ inc_count_consonant
+    CMP R6, #'n'
+    BEQ inc_count_consonant
+    CMP R6, #'N'
+    BEQ inc_count_consonant
+	CMP R6, #'p'
+    BEQ inc_count_consonant
+    CMP R6, #'P'
+    BEQ inc_count_consonant
+    CMP R6, #'q'
+    BEQ inc_count_consonant
+    CMP R6, #'Q'
+    BEQ inc_count_consonant
+    CMP R6, #'r'
+    BEQ inc_count_consonant
+    CMP R6, #'R'
+    BEQ inc_count_consonant
+    CMP R6, #'s'
+    BEQ inc_count_consonant
+    CMP R6, #'S'
+    BEQ inc_count_consonant
+    CMP R6, #'t'
+    BEQ inc_count_consonant
+    CMP R6, #'T'
+    BEQ inc_count_consonant
+    CMP R6, #'v'
+    BEQ inc_count_consonant
+    CMP R6, #'V'
+    BEQ inc_count_consonant
+    CMP R6, #'w'
+    BEQ inc_count_consonant
+    CMP R6, #'W'
+    BEQ inc_count_consonant
+    CMP R6, #'x'
+    BEQ inc_count_consonant
+    CMP R6, #'X'
+    BEQ inc_count_consonant
+    CMP R6, #'y'
+    BEQ inc_count_consonant
+    CMP R6, #'Y'
+    BEQ inc_count_consonant
+    CMP R6, #'z'
+    BEQ inc_count_consonant
+    CMP R6, #'Z'
+    BEQ inc_count_consonant
+    B letter_loop                @ Continue loop if not a vowel
+
+inc_count_vowel:
     ADD R5, R5, #1        @ Increment vowel count
-    B vowel_loop                @ Continue loop
+    B letter_loop                @ Continue loop
+
+inc_count_consonant:
+    ADD R7, R7, #1        @ Increment consonant count
+    B letter_loop                @ Continue loop
 
 done:
-    MOV R1, R5            @ Return vowel count in R1
-    BX LR
+    MOV R1, R5      @ Return vowel count in R1
+    B loop_LED
+
+loop_LED:
+	LDR R3, =GPIOE
+	STRB R1, [R3, #ODR +1]
+	B loop_LED
