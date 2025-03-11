@@ -1,0 +1,82 @@
+.syntax unified
+.thumb
+
+#include "definitions.s"
+#include "initialise.s"
+
+.data
+ascii_string: .asciz "vowels" @ Define ascii string
+
+.global Exercise2d
+
+.text
+Exercise2d:
+	BL enable_peripheral_clocks
+	BL initialise_discovery_board
+
+	LDR R0, =ascii_string 		@ Loads the string into R0
+	BL count_vowel
+
+	@LED PART (NOT WORKINGm IGNORE)
+	MOV R2, R1
+
+	MOV R3, #0			@ Clear R3
+	MOV R4, #1			@ Start the bitmask for LED 1
+	
+
+	loop_control_LED:
+		CMP R2, #0
+		BEQ end_control_LED
+        ORR R3, R3, R4                     @ Set the appropriate bit in R3 for the LED
+        LSR R2, R2, #1                     @ Shift vowel count (decrement by 1)
+        LSL R4, R4, #1                     @ Shift the LED bitmask to the next LED
+        B loop_control_LED
+
+    end_control_LED:
+    @ Now, R3 contains a bitmask where each bit corresponds to an LED (based on the vowel count)
+    @ Use this bitmask to control the LEDs (e.g., write it to the GPIO register)
+    LDR R0, =GPIOE                         @ Load GPIO port address (adjust this based on your platform)
+    STR R3, [R0, #ODR]                     @ Store the bitmask in the output data register to control LEDs
+
+    BX LR                                  @ Return from the function
+
+
+count_vowel:
+    MOV R4, R0           		@ R4 = Pointer to input string
+    MOV R5, #0            		@ R5 = Vowel count (initialize to 0)
+
+vowel_loop:
+    LDRB R6, [R4], #1     @ Load byte (character) and advance pointer
+    CMP R6, #0            @ Check if end of string (null terminator)
+    BEQ done              @ If yes, exit loop
+
+    @ Check for vowels (a, e, i, o, u, A, E, I, O, U)
+    CMP R6, #'a'
+    BEQ inc_count
+    CMP R6, #'e'
+    BEQ inc_count
+    CMP R6, #'i'
+    BEQ inc_count
+    CMP R6, #'o'
+    BEQ inc_count
+    CMP R6, #'u'
+    BEQ inc_count
+    CMP R6, #'A'
+    BEQ inc_count
+    CMP R6, #'E'
+    BEQ inc_count
+    CMP R6, #'I'
+    BEQ inc_count
+    CMP R6, #'O'
+    BEQ inc_count
+    CMP R6, #'U'
+    BEQ inc_count
+    B vowel_loop                @ Continue loop if not a vowel
+
+inc_count:
+    ADD R5, R5, #1        @ Increment vowel count
+    B vowel_loop                @ Continue loop
+
+done:
+    MOV R1, R5            @ Return vowel count in R1
+    BX LR
