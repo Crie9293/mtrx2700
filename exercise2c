@@ -1,0 +1,100 @@
+.syntax unified
+.thumb
+
+.global main
+
+#include "definitions.s"
+#include "initialise.s"
+
+.data
+led_pattern: .word 0x00000100  @ 初始LED模式（PE8）
+direction:   .word 0x00000001  @ 方向标志 (1=递增，0=递减)
+
+.text
+
+main:
+    BL enable_peripheral_clocks
+    BL initialise_discovery_board
+
+    LDR R4, =GPIOA           @ 按钮端口(PA0)
+    LDR R5, =led_pattern     @ LED模式指针
+    LDR R6, [R5]            @ 当前LED模式
+    LDR R7, =direction      @ 方向标志指针
+    LDR R8, [R7]            @ 当前方向
+    MOV R9, #1              @ LED计数器
+
+program_loop:
+    @ 持续显示当前模式
+    LDR R0, =GPIOE
+    STRH R6, [R0, #ODR]
+
+    @ 检查按钮状态
+    LDR R3, [R4, #IDR]
+    TST R3, #1
+    BEQ program_loop
+
+    @ 按钮按下处理
+    BL delay_debounce
+
+    @ 根据方向更新计数器
+    CMP R8, #1
+    BEQ increment_mode
+    B decrement_mode
+
+increment_mode:
+    ADD R9, #1
+    CMP R9, #8
+    BLS update_leds
+    @ 达到最大值切换方向
+    MOV R8, #0             @ 切换为递减模式
+    STR R8, [R7]          @ 存储新方向
+    B update_leds
+
+decrement_mode:
+    SUBS R9, #1
+    BHI update_leds
+    @ 达到最小值切换方向
+    MOV R8, #1              @ 切换为递增模式
+    STR R8, [R7]
+    MOV R9, #1             @ 重置计数器
+    LDR R6, =0x00000100    @ 重置LED模式
+    STR R6, [R5]
+    B program_loop
+
+update_leds:
+    @ 生成新的LED模式
+    CMP R8, #1
+    BEQ build_increment
+    B build_decrement
+
+build_increment:
+    LSL R6, #1            @ 左移添加新LED
+    ORR R6, #0x00000100   @ 保持最低位
+    STR R6, [R5]
+    B apply_delay
+
+build_decrement:
+    LSR R6, #1            @ 右移关闭最后LED
+    ORR R6, #0x00008000   @ 保持最高位不变
+    BIC R6, #0x00008000   @ 清除最高位实际关闭
+    STR R6, [R5]
+
+apply_delay:
+    BL delay_function
+    B program_loop
+
+@ 去抖动延迟（同前）
+delay_debounce:
+    LDR R10, =0x1FFFF
+debounce:
+    SUBS R10, #1
+    BNE debounce
+    BX LR
+
+@ 显示延迟（优化版）
+delay_function:
+    LDR R10, =0x2FFFFF
+delay:
+    SUBS R10, #1
+    BNE delay
+    BX LR
