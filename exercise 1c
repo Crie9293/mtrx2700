@@ -1,0 +1,52 @@
+.syntax unified
+.thumb
+
+.global main
+
+.data
+ascii_string: .asciz "aAa!"
+
+.text
+main:
+    LDR R1,=ascii_string
+    MOV R2,#-1
+	CMP R2, 0
+
+caeser_cypher:
+    LDRB R3,[R1]
+    CMP R3,#0	@check for \0
+    BEQ end
+    CMP R3, #'Z'
+    BLE uppercase	@check if uppercase or lowercase
+
+lowercase:
+	ADD R3, R3, R2	@add cypher value
+	CMP R3, #'z'
+	BGT BranchFwd	@branch back to 'a' if past 'z'
+	CMP R3, #'a'
+	BLT BranchBkwd	@branch back to 'z' if past 'a'
+	B Iterate
+
+uppercase:
+	ADD R3, R3, R2	@add cypher value
+	CMP R3, #'Z'
+	BGT BranchFwd	@branch back to 'A' if past 'Z'
+	CMP R3, #'A'
+	BLT BranchBkwd	@branch back to 'Z' if past 'A'
+	B Iterate
+
+Iterate:
+	STRB R3, [R1]	@store string
+    ADD R1, R1, #1	@iterate string
+    B caeser_cypher
+
+BranchFwd:
+	SUB R3, R3, #26	@go to start of alphabet
+	B Iterate
+
+BranchBkwd:
+	ADD R3, R3, #26	@go to end of alphabet
+	B Iterate
+
+end:
+    B end
