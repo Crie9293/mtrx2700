@@ -5,7 +5,7 @@
 #include "initialise.s"
 
 .data
-ascii_string: .asciz "aaaabba" @ Define ascii string
+ascii_string: .asciz "aeiouu" @ Define ascii string
 
 .global Exercise2d
 
@@ -50,91 +50,15 @@ letter_loop:
     BEQ inc_count_vowel
 
     @ Check for consonants (anythhing other than vowels)
-    @ Fix using ascii range
-    CMP R6, #'b'
-    BEQ inc_count_consonant
-	CMP R6, #'B'
-    BEQ inc_count_consonant
-    CMP R6, #'c'
-    BEQ inc_count_consonant
-    CMP R6, #'C'
-    BEQ inc_count_consonant
-    CMP R6, #'d'
-    BEQ inc_count_consonant
-    CMP R6, #'D'
-    BEQ inc_count_consonant
-    CMP R6, #'f'
-    BEQ inc_count_consonant
-    CMP R6, #'F'
-    BEQ inc_count_consonant
-    CMP R6, #'g'
-    BEQ inc_count_consonant
-    CMP R6, #'G'
-    BEQ inc_count_consonant
-    CMP R6, #'h'
-    BEQ inc_count_consonant
-    CMP R6, #'H'
-    BEQ inc_count_consonant
-    CMP R6, #'j'
-    BEQ inc_count_consonant
-    CMP R6, #'J'
-    BEQ inc_count_consonant
-    CMP R6, #'k'
-    BEQ inc_count_consonant
-    CMP R6, #'K'
-    BEQ inc_count_consonant
-    CMP R6, #'l'
-    BEQ inc_count_consonant
-    CMP R6, #'L'
-    BEQ inc_count_consonant
-    CMP R6, #'m'
-    BEQ inc_count_consonant
-    CMP R6, #'M'
-    BEQ inc_count_consonant
-    CMP R6, #'n'
-    BEQ inc_count_consonant
-    CMP R6, #'N'
-    BEQ inc_count_consonant
-	CMP R6, #'p'
-    BEQ inc_count_consonant
-    CMP R6, #'P'
-    BEQ inc_count_consonant
-    CMP R6, #'q'
-    BEQ inc_count_consonant
-    CMP R6, #'Q'
-    BEQ inc_count_consonant
-    CMP R6, #'r'
-    BEQ inc_count_consonant
-    CMP R6, #'R'
-    BEQ inc_count_consonant
-    CMP R6, #'s'
-    BEQ inc_count_consonant
-    CMP R6, #'S'
-    BEQ inc_count_consonant
-    CMP R6, #'t'
-    BEQ inc_count_consonant
-    CMP R6, #'T'
-    BEQ inc_count_consonant
-    CMP R6, #'v'
-    BEQ inc_count_consonant
-    CMP R6, #'V'
-    BEQ inc_count_consonant
-    CMP R6, #'w'
-    BEQ inc_count_consonant
-    CMP R6, #'W'
-    BEQ inc_count_consonant
-    CMP R6, #'x'
-    BEQ inc_count_consonant
-    CMP R6, #'X'
-    BEQ inc_count_consonant
-    CMP R6, #'y'
-    BEQ inc_count_consonant
-    CMP R6, #'Y'
-    BEQ inc_count_consonant
-    CMP R6, #'z'
-    BEQ inc_count_consonant
-    CMP R6, #'Z'
-    BEQ inc_count_consonant
+
+    CMP  R6, #'A'
+    BLT inc_count_consonant
+    CMP  R6, #'Z'
+    BLE inc_count_consonant
+    CMP  R6, #'a'
+    BLT inc_count_consonant
+    CMP  R6, #'z'
+    BLE inc_count_consonant
     B letter_loop                @ Continue loop if not a vowel
 
 inc_count_vowel:
