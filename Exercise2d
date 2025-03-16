@@ -5,7 +5,9 @@
 #include "initialise.s"
 
 .data
-ascii_string: .asciz "aeiouu" @ Define ascii string
+ascii_string: .asciz "aap" 	@ Define ascii string
+
+.equ DEBOUNCE_DELAY, 20000
 
 .global Exercise2d
 
@@ -13,67 +15,130 @@ ascii_string: .asciz "aeiouu" @ Define ascii string
 Exercise2d:
 	BL enable_peripheral_clocks
 	BL initialise_discovery_board
+	LDR R7, =GPIOA
+	LDR R6, =GPIOE
 
 	LDR R0, =ascii_string 		@ Loads the string into R0
 	BL count_letter
 
 count_letter:
-    MOV R4, R0           		@ R4 = Pointer to input string
-    MOV R5, #0b0            		@ R5 = Vowel count (initialize to 0)
-    MOV R7, #0b0					@ R7 = Consonant count (initialize to 0)
+    MOV R1, R0           		@ R1 = Pointer to input string
+    MOV R2, #0b0            	@ R2 = Vowel count (initialize to 0)
+    MOV R3, #0b0				@ R3 = Consonant count (initialize to 0)
 
 letter_loop:
-    LDRB R6, [R4], #1     @ Load byte (character) and advance pointer
-    CMP R6, #0            @ Check if end of string (null terminator)
-    BEQ done              @ If yes, exit loop
+    LDRB R4, [R1], #1     		@ Load byte (character) and advance pointer
+    CMP R4, #0            		@ Check if end of string (null terminator)
+    BEQ done              		@ If yes, exit loop
 
     @ Check for vowels (a, e, i, o, u, A, E, I, O, U)
-    CMP R6, #'a'
+    CMP R4, #'a'
     BEQ inc_count_vowel
-    CMP R6, #'e'
+    CMP R4, #'e'
     BEQ inc_count_vowel
-    CMP R6, #'i'
+    CMP R4, #'i'
     BEQ inc_count_vowel
-    CMP R6, #'o'
+    CMP R4, #'o'
     BEQ inc_count_vowel
-    CMP R6, #'u'
+    CMP R4, #'u'
     BEQ inc_count_vowel
-    CMP R6, #'A'
+    CMP R4, #'A'
     BEQ inc_count_vowel
-    CMP R6, #'E'
+    CMP R4, #'E'
     BEQ inc_count_vowel
-    CMP R6, #'I'
+    CMP R4, #'I'
     BEQ inc_count_vowel
-    CMP R6, #'O'
+    CMP R4, #'O'
     BEQ inc_count_vowel
-    CMP R6, #'U'
+    CMP R4, #'U'
     BEQ inc_count_vowel
 
     @ Check for consonants (anythhing other than vowels)
 
-    CMP  R6, #'A'
+    CMP  R4, #'A'
     BLT inc_count_consonant
-    CMP  R6, #'Z'
+    CMP  R4, #'Z'
     BLE inc_count_consonant
-    CMP  R6, #'a'
+    CMP  R4, #'a'
     BLT inc_count_consonant
-    CMP  R6, #'z'
+    CMP  R4, #'z'
     BLE inc_count_consonant
-    B letter_loop                @ Continue loop if not a vowel
+    B letter_loop               @ Continue loop if not a vowel
 
 inc_count_vowel:
-    ADD R5, R5, #1        @ Increment vowel count
-    B letter_loop                @ Continue loop
+    ADD R2, R2, #1        		@ Increment vowel count
+    B letter_loop              	@ Continue loop
 
 inc_count_consonant:
-    ADD R7, R7, #1        @ Increment consonant count
-    B letter_loop                @ Continue loop
+    ADD R3, R3, #1        		@ Increment consonant count
+    B letter_loop               @ Continue loop
 
 done:
-    MOV R1, R5      @ Return vowel count in R1
-    B loop_LED
+    MOV R5, R2      			@ Return vowel count in R1
+    MOV R9, #0					@ Display state
+    B display_loop
 
-loop_LED:
-	LDR R3, =GPIOE
-	STRB R1, [R3, #ODR +1]
-	B loop_LED
+display_loop:
+    CMP R9, #0             		@ Check current display state
+    BEQ show_vowels         	@ If 0, show vowels
+    B show_consonants       	@ If not, show consonants
+
+show_vowels:
+    STRB R5, [R6, #ODR +1]  	@ Show vowel count on LEDs
+    BL check_button_debounced
+    CMP R0, #1              	@ Check if button pressed
+    BNE display_loop        	@ If not, loop vowel LED
+    MOV R9, #1              	@ Change state to consonants
+    B display_loop
+
+show_consonants:
+    STRB R3, [R6, #ODR +1]  	@ Show consonant count on LEDs
+    BL check_button_debounced
+    CMP R0, #1              	@ Check if button pressed?
+    BNE display_loop        	@ If not, loop consonants LED
+    MOV R9, #0              	@ Change state to vowels
+    B display_loop
+
+@ Function to check button with debounce
+check_button_debounced:
+    PUSH {R1-R4, LR}        	@ Save registers
+
+    @ Check if button is pressed
+    LDR R1, [R7, #IDR]      	@ Read input data register
+    TST R1, #1              	@ Test bit 0 (USER button)
+    BNE button_not_pressed  	@ If not pressed, branch
+
+    LDR R4, =DEBOUNCE_DELAY		@ Add bounce delay
+
+debounce_loop:
+    SUBS R4, R4, #1         	@ Decrement counter
+    BNE debounce_loop       	@ Continue loop if not zero
+
+    @ Check if button is still pressed after delay
+    LDR R1, [R7, #IDR]      	@ Read input data register again
+    TST R1, #1              	@ Test bit 0 (USER button)
+    BNE button_not_pressed  	@ If not pressed anymore, branch
+
+    @ Button is still pressed - wait for release
+wait_for_release:
+    LDR R1, [R7, #IDR]			@ Read input data register
+    TST R1, #1
+    BEQ wait_for_release    	@ If still pressed, keep waiting
+
+    @ Add a small delay after release
+    LDR R4, =DEBOUNCE_DELAY
+
+release_debounce_loop:
+    SUBS R4, R4, #1
+    BNE release_debounce_loop
+
+    @ Button passed debounce check
+    MOV R0, #1              	@ Return 1 (button pressed)
+    B button_check_exit
+
+button_not_pressed:
+    MOV R0, #0              	@ Return 0 (button not pressed)
+
+button_check_exit:
+    POP {R1-R4, LR}         	@ Restore registers
+    BX LR                   	@ Return
