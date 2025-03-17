@@ -1,0 +1,68 @@
+.syntax unified
+.thumb
+
+#include "definitions.s"
+#include "initialise.s"
+
+.data
+led_pattern: .word 0x00000000  @ Initial LED pattern (no LEDs)
+
+.global Exercise2b
+
+.text
+Exercise2b:
+    BL enable_peripheral_clocks
+    BL initialise_discovery_board
+
+    LDR R4, =GPIOA           @ Button port (PA0)
+    LDR R0, =GPIOE           @ LED port
+    LDR R5, =led_pattern     @ LED pattern pointer
+    LDR R6, [R5]             @ Current LED pattern = 0 (no LEDs lit)
+    MOV R9, #0               @ LED counter starts at 0
+
+program_loop:
+    @ Display current pattern
+    STRH R6, [R0, #ODR]
+
+    @ Check button state
+    LDR R3, [R4, #IDR]
+    TST R3, #1
+    BEQ program_loop         @ If button not pressed, keep showing current pattern
+
+    @ Button pressed handling
+    BL delay_debounce        @ Debounce delay
+
+    @ Increment counter and update LEDs
+    ADD R9, #1
+    CMP R9, #9               @ Check if we've reached 9 (all 8 LEDs lit)
+    BEQ end_program          @ If all LEDs lit, end program
+
+    @ Build new LED pattern - works for all cases including first LED
+    LSL R6, #1               @ Shift left (no effect when R6=0 initially)
+    ORR R6, #0x00000100      @ Add the new rightmost LED (PE8)
+    STR R6, [R5]             @ Store updated pattern
+
+    BL delay_function        @ Apply delay
+    B program_loop           @ Continue loop
+
+end_program:
+    @ All LEDs are lit, stay in this state
+    LDR R6, =0x0000FF00      @ Set all LEDs on (PE8-PE15)
+    STRH R6, [R0, #ODR]      @ Display final pattern
+    B end_program            @ Stay in this state forever
+
+@ Debounce delay
+delay_debounce:
+    LDR R10, =0x1FFFF
+debounce:
+    SUBS R10, #1
+    BNE debounce
+    BX LR
+
+@ Display delay
+delay_function:
+    LDR R10, =0x2FFFFF
+delay:
+    SUBS R10, #1
+    BNE delay
+    BX LR
