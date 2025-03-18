@@ -40,3 +40,17 @@
 ### Agenda items
 * Finalize Exercise 1 and 2
 * Start Exercise 3
+
+# 18th March 2025
+### Location
+* Eng Link Mechatronic Dry Lab 330
+### Time
+* 14:00-17:00
+### Attendees
+* Callum Riethmuller
+* Daniel Maynard
+* Nicholas Tika
+* Qianhui Cao
+### Agenda itemes
+* Exercise 3: Daniel Maynard & Nicholas Tika
+* Exercise 4: Callum Riethmuller & Qianhui Cao
