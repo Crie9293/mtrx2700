@@ -1,12 +1,14 @@
 // Include the definition and initialization files
 #include "initialise.s"
+#include "definitions.s"
 
 .syntax unified
 .thumb
 .global partA
 
 // Terminating character
-.equ TERM_CHAR, '$'     // User-defined terminating character
+.equ TERM_CHAR, '$'
+// User-defined terminating character
 
 .data
 .align
@@ -19,7 +21,7 @@ txLength:
 // Entry point
 partA:
     BL enableGPIOClocks
-    BL enableUART
+    BL enable_uart
     B buttonMonitor      // Instead of directly transmitting, monitor button
 
 // New function: Monitor button press
@@ -56,12 +58,12 @@ countLoop:
     B countLoop              // Continue counting
 
 prepTransmit:
-    LDR R0, =UART1           // Load UART1 base address
+    LDR R0, =USART1           // Load UART1 base address
     MOV R4, R7               // Copy character count to R4
     MOV R3, R1               // Copy string address to R3
 
 transmitLoop:
-    LDR R5, [R0, #UART_ISR]  // Load the status register into R5
+    LDR R5, [R0, #USART_ISR]  // Load the status register into R5
     TST R5, #(1 << UART_TXE) // Check if TXE bit is set
     BEQ transmitLoop         // Wait (loop) until it is set
 
@@ -69,16 +71,16 @@ transmitLoop:
     BEQ sendTerminator       // If yes, send terminating character
 
     LDRB R5, [R3], #1        // Load the next character in the string and point to the next entry
-    STRB R5, [R0, #UART_TDR] // Transmit the character
+    STRB R5, [R0, #USART_TDR] // Transmit the character
     SUBS R4, #1              // Decrement character count
     B transmitLoop           // Continue transmitting
 
 sendTerminator:
-    LDR R5, [R0, #UART_ISR]  // Check status register again
+    LDR R5, [R0, #USART_ISR]  // Check status register again
     TST R5, #(1 << UART_TXE) // Check if TXE bit is set
     BEQ sendTerminator       // Wait until ready
 
     MOV R5, #TERM_CHAR       // Load terminating character
-    STRB R5, [R0, #UART_TDR] // Transmit terminating character
+    STRB R5, [R0, #USART_TDR] // Transmit terminating character
 
     POP {R4-R7, PC}          // Restore registers and return
