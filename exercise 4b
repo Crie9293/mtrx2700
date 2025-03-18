@@ -1,0 +1,40 @@
+.syntax unified
+.thumb
+
+#include "definitions.s"
+
+.global main
+
+
+main:
+	MOV R1, #1000   @ 1ms delay
+
+    LDR R0, =RCC	@ load the base adress for the timer
+    LDR R2, [R0, #APB1ENR]    @ load peripheral control clock register
+	ORR R2, 1 << TIM2EN      @ enable tim2 flag
+    STR R2, [R0, #APB1ENR]
+
+    LDR R0, =TIM2
+    MOV R2, #1   @ set prescaler 
+    STR R2, [R0, #TIM_PSC]
+
+    LDR R0, =TIM2
+    MOV R2, #1000
+    STR R2, [R0, #TIM_ARR]	@ store auto-reload value
+
+    MOV R2, #0
+    STR R2, [R0, #TIM_CNT]	@ reset and clear the counter
+
+    MOV R2, #1
+    STR R2, [R0, #TIM_CR1]	@start the timer
+
+delay:
+    LDR R2, [R0, #TIM_CNT]
+    CMP R2, R1	 @ check if reached delay time
+    BLT delay	 @ if CNT < delay, loop
+
+    MOV R2, #0                   @ stop timer
+    STR R2, [R0, #TIM_CR1]       @ disable TIM2
+
+end:
+	B end
