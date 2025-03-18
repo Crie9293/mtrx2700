@@ -1,0 +1,88 @@
+.syntax unified
+.thumb
+
+#include "initialise.s"
+
+.global main
+
+.data
+@ 修改后的变量定义
+on_time:  .word 0      @ 初始占空时间
+period:   .word 9999   @ 周期值（对应ARR）
+
+.text
+@ 延时配置说明：
+@ 系统时钟假设为72MHz
+@ 预分频器公式：PSC = (系统时钟 / 目标频率) - 1
+@ 自动重载值公式：ARR = (总延时 / 定时器周期) - 1
+
+@ 针对不同延时的推荐配置：
+@ 1微秒：PSC=71 (72MHz/72=1MHz), ARR=任意（但需注意计数器位数）
+@ 1秒：   PSC=7199 (10kHz), ARR=9999 → (72MHz/7200)=10kHz → 0.1ms/计数 → 0.1ms*10000=1s
+@ 1小时： 使用1秒配置，循环3600次
+
+main:
+    BL enable_timer2_clock
+    BL enable_peripheral_clocks
+    BL initialise_discovery_board
+
+    @ 配置定时器2
+    LDR R0, =TIM2
+    @ 设置预分频器（演示0.1ms周期）
+    LDR R1, =7199       @ PSC = 7199 → 72MHz/7200 = 10kHz
+    STR R1, [R0, #TIM_PSC]
+    @ 设置自动重载值
+    LDR R1, =9999       @ ARR = 9999 → 10000次计数
+    STR R1, [R0, #TIM_ARR]
+    @ 触发更新事件应用设置
+    MOV R1, #1
+    @ 原错误行：STRB R7, [R0, #ODR + 1]
+	@ 修改为：
+	LDR R3, =ODR           @ 获取ODR的绝对偏移量
+	ADDS R3, #1            @ 计算ODR+1的偏移
+	STRB R7, [R0, R3]      @ 使用寄存器基址+偏移量
+
+    @ 启用定时器
+    MOV R1, #0b1
+    STR R1, [R0, #TIM_CR1]
+
+    MOV R9, #0          @ 初始化周期计数器
+
+
+pwm_loop:
+    LDR R7, =0b01010101 @ LED模式
+	STRB R7, [R0, #ODR+1] @ 点亮LED
+
+
+pwm_on_cycle:
+    LDR R0, =TIM2
+    MOV R8, #0          @ 重置计数器
+    STR R8, [R0, #TIM_CNT]
+
+    ADD R1, #100        @ 每次增加100计数（对应10ms）
+    CMP R1, R2          @ 检查是否超出周期
+    IT GT
+    MOVGT R1, #0        @ 如果超出则重置
+
+    LDR R0, =GPIOE
+    STRB R7, [R0, #ODR+1] @ 点亮LED
+
+pwm_on_loop:
+    LDR R0, =TIM2
+    LDR R6, [R0, #TIM_CNT]
+    CMP R6, R1
+    BLE pwm_on_loop     @ 等待占空时间结束
+
+pwm_off_cycle:
+    LDR R0, =GPIOE
+    MOV R4, #0
+    STRB R4, [R0, #ODR+1] @ 关闭LED
+    ADD R9, #1          @ 每次周期完成计数加1
+
+
+pwm_off_loop:
+    LDR R0, =TIM2
+    LDR R6, [R0, #TIM_CNT]
+    CMP R6, R2
+    BLE pwm_off_loop    @ 等待周期结束
+    B pwm_on_cycle
