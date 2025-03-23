@@ -54,3 +54,19 @@
 ### Agenda itemes
 * Exercise 3: Daniel Maynard & Nicholas Tika
 * Exercise 4: Callum Riethmuller & Qianhui Cao
+
+# 25th March 2025
+### Location
+* PNR Learning Studio
+### Time
+* 11:00 - 15:00
+### Attendees
+* Callum Riethmuller
+* Daniel Maynard
+* Nicholas Tika
+* Qianhui Cao
+### Agenda itemes
+* Exercise 3
+* Exercise 4
+* Exercise 5
+* Complete Documentation
