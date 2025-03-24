@@ -5,26 +5,26 @@
 #include "initialise.s"
 
 .data
-ascii_string: .asciz "aap" 	@ Define ascii string
+ascii_string: .asciz "aap" 		@ Define ascii string
 
-.equ DEBOUNCE_DELAY, 20000
+.equ DEBOUNCE_DELAY, 20000		@ Choose an arbitrary value for debouncing the button (should be large enough)
 
 .global Exercise2d
 
 .text
 Exercise2d:
-	BL enable_peripheral_clocks
-	BL initialise_discovery_board
-	LDR R7, =GPIOA
-	LDR R6, =GPIOE
+	BL enable_peripheral_clocks	@ Enabling the GPIO configurations in the microcontroller with functions in "initialise.s" file given from lecture
+	BL initialise_discovery_board	@ Enabling the discovery board user button
+	LDR R7, =GPIOA			@ Set R7 to GPIOA (where the user button bit is stored)
+	LDR R6, =GPIOE			@ Set R6 to GPIOE (where the bits of LEDs are stored)
 
 	LDR R0, =ascii_string 		@ Loads the string into R0
 	BL count_letter
 
 count_letter:
     MOV R1, R0           		@ R1 = Pointer to input string
-    MOV R2, #0b0            	@ R2 = Vowel count (initialize to 0)
-    MOV R3, #0b0				@ R3 = Consonant count (initialize to 0)
+    MOV R2, #0b0            		@ R2 = Vowel count (initialize to 0)
+    MOV R3, #0b0			@ R3 = Consonant count (initialize to 0)
 
 letter_loop:
     LDRB R4, [R1], #1     		@ Load byte (character) and advance pointer
@@ -33,7 +33,7 @@ letter_loop:
 
     @ Check for vowels (a, e, i, o, u, A, E, I, O, U)
     CMP R4, #'a'
-    BEQ inc_count_vowel
+    BEQ inc_count_vowel			@ If current letter is a vowel, branch to another function
     CMP R4, #'e'
     BEQ inc_count_vowel
     CMP R4, #'i'
@@ -53,8 +53,7 @@ letter_loop:
     CMP R4, #'U'
     BEQ inc_count_vowel
 
-    @ Check for consonants (anythhing other than vowels)
-
+    @ Check for consonants (anything other than vowels)
     CMP  R4, #'A'
     BLT inc_count_consonant
     CMP  R4, #'Z'
@@ -63,32 +62,32 @@ letter_loop:
     BLT inc_count_consonant
     CMP  R4, #'z'
     BLE inc_count_consonant
-    B letter_loop               @ Continue loop if not a vowel
+    B letter_loop               	@ Continue loop if not a vowel
 
 inc_count_vowel:
     ADD R2, R2, #1        		@ Increment vowel count
-    B letter_loop              	@ Continue loop
+    B letter_loop              		@ Continue loop
 
 inc_count_consonant:
     ADD R3, R3, #1        		@ Increment consonant count
-    B letter_loop               @ Continue loop
+    B letter_loop               	@ Continue loop
 
 done:
     MOV R5, R2      			@ Return vowel count in R1
-    MOV R9, #0					@ Display state
+    MOV R9, #0				@ Set mode to vowel or consonant LED count
     B display_loop
 
 display_loop:
     CMP R9, #0             		@ Check current display state
-    BEQ show_vowels         	@ If 0, show vowels
-    B show_consonants       	@ If not, show consonants
+    BEQ show_vowels         		@ If 0, show vowels (initial state)
+    B show_consonants       		@ If not, show consonants
 
 show_vowels:
-    STRB R5, [R6, #ODR +1]  	@ Show vowel count on LEDs
+    STRB R5, [R6, #ODR +1]  		@ Show vowel count on LEDs
     BL check_button_debounced
-    CMP R0, #1              	@ Check if button pressed
-    BNE display_loop        	@ If not, loop vowel LED
-    MOV R9, #1              	@ Change state to consonants
+    CMP R0, #1              		@ Check if button pressed
+    BNE display_loop        		@ If not, loop vowel LED
+    MOV R9, #1              		@ Change state to consonants
     B display_loop
 
 show_consonants:
