@@ -47,7 +47,7 @@ load_message:
 		LDRB R5, [R1], #1		@ Post increment by 1
 		CMP R5, #0				@ Check if it's end of string
 		BEQ end_loop
-		BL uart_loop
+		B uart_loop
 
 end_loop:
 	LDR R0, =terminating_char
