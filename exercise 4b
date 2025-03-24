@@ -1,26 +1,64 @@
 .syntax unified
 .thumb
 
-#include "definitions.s"
-
 .global main
 
+// Clock registers
+.equ RCC, 0x40021000	  // Base clock register. Reset, Clock Control
+.equ AHBENR, 0x14       // Enable GPIO clocks
+.equ APB1ENR, 0x1C      // Enable peripherals on bus 1
+.equ APB2ENR, 0x18      // Enable Timers
+
+// Base addresses for GPIO ports
+.equ GPIOE, 0x48001000
+
+// Offsets for GPIO ports
+.equ MODER, 0x00
+.equ ODR, 0x14
+
+// Bits for enabling GPIO ports
+.equ GPIOA_ENABLE, 17
+.equ GPIOC_ENABLE, 19
+.equ GPIOE_ENABLE, 21
+
+// Enable the clocks for timer 2
+.equ TIM2EN, 0
+
+.equ GPIOx_AFRH, 0x24 @ offset for setting the alternate pin function
+
+// Timer registers
+.equ TIM2, 0x40000000	   // Base address for Timer 2
+.equ TIM_CR1, 0x00	     // Enable counter and choose whether to count up or down
+.equ TIM_CCMR1, 0x18     // Compare capture settings register
+.equ TIM_CNT, 0x24       // Counter
+.equ TIM_ARR, 0x2C       // Value for counter to count up to or to count down from
+.equ TIM_PSC, 0x28       // Prescaler
+.equ TIM_CCER, 0x20      // Enable output compare
+.equ TIM_CCR1, 0x34      // Value for TCNT to be compared to in output compare
+.equ TIM_SR, 0x10        // Status register
+.equ TIM_DIER, 0x0C      // Enable interrupts
+
+.data
+
+.text
 
 main:
-	MOV R1, #1000   @ 1ms delay
+	BL enableGPIOClocks
+	BL enableLEDs
+
+	MOV R1, #100   @ 1ms delay
 
     LDR R0, =RCC	@ load the base adress for the timer
     LDR R2, [R0, #APB1ENR]    @ load peripheral control clock register
-	ORR R2, 1 << TIM2EN      @ enable tim2 flag
+	  ORR R2, 1 << TIM2EN      @ enable tim2 flag
     STR R2, [R0, #APB1ENR]
 
-    LDR R0, =TIM2
-    MOV R2, #1   @ set prescaler 
+	LDR R0, =TIM2
+    MOV R2, #7999  @ set prescaler
     STR R2, [R0, #TIM_PSC]
 
     LDR R0, =TIM2
-    MOV R2, #1000
-    STR R2, [R0, #TIM_ARR]	@ store auto-reload value
+    STR R1, [R0, #TIM_ARR]	@ store auto-reload value
 
     MOV R2, #0
     STR R2, [R0, #TIM_CNT]	@ reset and clear the counter
@@ -29,12 +67,35 @@ main:
     STR R2, [R0, #TIM_CR1]	@start the timer
 
 delay:
+	LDR R7, =0b00000000
+	LDR R6, =GPIOE
+	STRB R7, [R6, #ODR + 1]
     LDR R2, [R0, #TIM_CNT]
     CMP R2, R1	 @ check if reached delay time
     BLT delay	 @ if CNT < delay, loop
 
-    MOV R2, #0                   @ stop timer
-    STR R2, [R0, #TIM_CR1]       @ disable TIM2
+    //MOV R2, #0                   @ stop timer
+    //STR R2, [R0, #TIM_CR1]       @ disable TIM2
+
+Turnon:
+	LDR R7, =0b11111111
+	LDR R6, =GPIOE
+	STRB R7, [R6, #ODR + 1]
+	B delay
+
 
 end:
 	B end
+
+enableGPIOClocks:
+	LDR R0, =RCC
+	LDR R1, [R0, #AHBENR]
+	ORR R1, 1 << GPIOA_ENABLE | 1 << GPIOC_ENABLE | 1 << GPIOE_ENABLE
+	STR R1, [R0, #AHBENR]
+	BX LR
+
+enableLEDs:
+	LDR R0, =GPIOE
+	LDR R1, =0x5555
+	STRH R1, [R0, #MODER + 2]
+	BX LR
