@@ -74,7 +74,22 @@ BranchBkwd:
 The new cyphered ascii string is stored in R3
 
 ## Exercise 2
+### 2.a
 
+
+
+
+### 2.b
+
+
+
+
+### 2.c
+
+
+
+
+### 2.d
 
 
 
