@@ -52,7 +52,7 @@ receive_char:
     ADD R8, #1
 
     @ Check buffer limit
-    CMP R8, R3
+    CMP R8, R7
     BGE store_null            @ If buffer full, terminate
 
     B receive_char            @ Continue receiving
