@@ -146,8 +146,72 @@ Here, we have #ODR + 1 because the bit location for the LEDs are located on bits
 
 ## Exercise 3
 ### 3.a
+In this exercise we can seperate our code into two modules:
+* Checking the status of the button
+* Transmitting the string
 
+#### Checking the status of the button
+The program checks whether the button is being pressed. If not, it cycles checking again and again, until it detects that it is being pressed. If it detects it is pressed it reads the button state again until it detects the button has been released. It then returns to the main function so the string can be transmitted.
+```
+check_button:
+    LDR R0, =GPIOA			@ Load GPIOA address into R0 (button bit)
+poll_press:
+    LDR R3, [R0, #GPIO_IDR]   		@ Read button state (0 = not pressed, 1 = pressed)
+    TST R3, #1               		@ Check if PA0 is pressed (bit if button)
+    BEQ poll_press            		@ Keep polling if not pressed 
 
+poll_release:
+    LDR R3, [R0, #GPIO_IDR]   		@ Read button state again
+    TST R3, #1                		@ Check if PA0 is still pressed
+    BNE poll_release          		@ Wait until button is released
+
+    BX LR				@ Go back to the main flow (load_message)
+```
+
+#### Transmitting the string
+The program copies the memory address of the string we want to transmit into register R1. It then loads each byte (character) into the UART transmit one-by-one with a slight delay to keep the process stable checking each time that the transmit buffer is empty (the character has been successfully transmitted) before it sends the next one. Once it detects the null terminator in the string (signifying the end), it copies the memory address of the terminating character into R1 and loads this byte/character into the UART transmit before returning to the main function and looping through the whole program again.
+```
+load_message:
+	LDR R1, =message           	@ Load address of message
+	transmit_loop:
+		LDRB R5, [R1], #1	@ Loads the char into R5 and post increment R1 by 1
+		CMP R5, #0		@ Check if it's end of string
+		BEQ end_loop		@ Branch to end loop if null terminator detected
+		B uart_loop		@ If not end of string, continue the transmission
+
+end_loop:
+	LDR R0, =terminating_char	@ Set R0 to the terminating char
+	LDRB R5, [R0]			@ Get the byte of the terminating char
+	poll_end:
+		LDR R0, =UART			@ Get address of UART 
+		LDR R3, [R0, USART_ISR]		@ Read the UART status register
+		ANDS R3, #1 << UART_TXE		@ Check if TX buffer is empty (ready to transmit)
+		BEQ poll_end			@ If not empty, keep on checking
+
+		STRB R5, [R0, USART_TDR]	@ Transmit the terminating character 
+		B main_flow			@ Restart the whole process (wait for button input)
+
+uart_loop:
+	LDR R0, =UART				@ Get address of UART
+
+	poll_uart:				
+		LDR R3, [R0, USART_ISR]		@ Read the UART status register
+
+		ANDS R3, #1 << UART_TXE		@ Check if TX bufer is empy (ready to transmit)
+		BEQ uart_loop			@ If not empty, keep on checking
+
+		STRB R5, [R0, USART_TDR]	@ Transmit the current character
+		BL delay_loop			@ Delay to make the transmission stable
+		B transmit_loop			@ Loop the transmission process
+
+@ Basic delay function following the lecture
+delay_loop:
+	LDR R9, =0xfffff 			@ Arbitrary value (should be large enough)
+delay_inner:
+	SUBS R9, #1
+	BGT delay_inner
+	BX LR
+```
 
 ### 3.b
 
