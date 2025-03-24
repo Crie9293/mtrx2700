@@ -218,7 +218,26 @@ delay_inner:
 
 
 ### 3.c
+This code involved uncommenting a line from the Week 3 UART example code to call a function defined in initialise.s to change the clock speed to six times faster than before (from 8MHz to 48MHz). 
+```
+@ step 2, now the clock is HSE, we are allowed to switch to PLL
+	@ clock is set to External clock (external crystal) - 8MHz, can enable the PLL now
+	LDR R1, [R0, #RCC_CFGR] @ load the original value from the enable register
+	LDR R2, =1 << 20 | 1 << PLLSRC | 1 << 22 @ the last term is for the USB prescaler to be 1
+	ORR R1, R2  @ set PLLSRC (use PLL) and PLLMUL to 0100 - bit 20 is 1 (set speed as 6x faster)
+				@ see page 140 of the large manual for options
+				@ NOTE: cannot go faster than 72MHz)
+	STR R1, [R0, #RCC_CFGR] @ store the modified enable register values back to RCC
+```
 
+The same baud rate must be maintained for the computer to continue to be able to communicate with the microcontroller through the UART. We are over sampling by 16 so use the equation:
+<img width="278" alt="Screenshot 2025-03-25 at 10 47 56 AM" src="https://github.com/user-attachments/assets/8e225650-711f-470f-af53-e7ecac45787b" />
+Our desired baud rate is 115,200. Previously, this gave USARTDIV = 8,000,000 / 115,200 = 0x46, with the new clock speed we get USARTDIV = 48,000,000 / 115,200 = 0x1A1.
+```
+@ this is the baud rate
+@MOV R1, #0x46 @ from our earlier calculations (for 8MHz), store this in register R1
+MOV R1, #0x1A1 @ From calculation for clock at 48MHz
+```
 
 
 ### 3.d
