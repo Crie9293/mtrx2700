@@ -1,0 +1,105 @@
+.syntax unified
+.thumb
+
+#include "initialise.s"
+
+.global partC
+
+.data
+.align
+terminating_char: .ascii "$"             @ Custom terminating character
+
+buffer: .space 129                       @ Initialisea buffer space to store string 
+counter: .byte 129                       @ Set a maximum buffer size
+
+.text
+
+partC:
+    @ Initialize peripherals and UART (taken from lectures)
+    BL initialise_power
+    BL enable_peripheral_clocks
+    BL enable_uart
+
+    LDR R2, =terminating_char		        @ Get address of terminating char
+    LDRB R2, [R2]			                  @ Set R2 to the terminating_char which in this case is $ (dereferencing)
+    LDR R1, =buffer			                @ Load buffer into R1 to store the string typed in the UART
+    LDR R7, =counter			              @ Load counter into R7
+    LDRB R7, [R7]			                  @ Load buffer size (129) into R7
+
+    MOV R8, #0x00 			                @ Initialise R8 for index/counter
+
+receive_char:
+    LDR R0, =UART                       @ Load UART address
+    LDR R4, [R0, USART_ISR]             @ Read the UART status register
+
+    @ Error check
+    TST R4, 1 << UART_ORE | 1 << UART_FE
+    BNE clear_error
+
+    TST R4, 1 << UART_RXNE              @ Check if UART is ready to receive data
+    BEQ receive_char
+
+    LDRB R4, [R0, USART_RDR]            @ Read the received character/byte from the UART
+
+    CMP R4, R2                          @ Check if current char is same as the terminating char
+    BEQ store_null
+
+    STRB R4, [R1, R8]			              @ Store the character in the buffer at index R8
+    ADD R8, #1				                  @ Increment the index/count of R8
+
+    @ Check buffer limit
+    CMP R8, R7
+    BGE store_null                      @ If buffer is at max capacity, terminate
+
+    B receive_char                      @ Continue the receiving loop
+
+store_null:
+    STRB R2, [R1, R8]                   @ Null-terminate the string
+    B transmit_loop                     @ transmit the string in same UART
+
+@ Error handling
+clear_error:
+    LDR R4, [R0, USART_ICR]
+    ORR R4, 1 << UART_ORECF | 1 << UART_FECF
+    STR R4, [R0, USART_ICR]
+    B receive_char
+
+transmit_loop:
+	LDRB R5, [R1], #1		                  @ Loads the char into R5 and post increment R1 by 1
+	CMP R5, R2				                    @ Check if current char is same as the terminating char
+	BEQ end_loop
+	B uart_loop
+
+end_loop:
+	LDR R0, =UART			                    @ Get address of UART 
+	LDR R3, [R0, USART_ISR]		            @ Read the UART status register
+	ANDS R3, #1 << UART_TXE		            @ Check if TX buffer is empty (ready to transmit)
+	BEQ end_loop
+
+	STRB R2, [R0, USART_TDR]              @ Transmit the terminating char
+
+	B finish
+
+uart_loop:
+	LDR R0, =UART                         @ Get address of UART 
+
+	poll_uart:
+		LDR R3, [R0, USART_ISR]		          @ Read the UART status register
+
+		ANDS R3, #1 << UART_TXE		          @ Check if TX bufer is empy (ready to transmit)
+		BEQ uart_loop			                  @ If not empty, keep on checking
+
+		STRB R5, [R0, USART_TDR]	          @ Transmit the current character
+		BL delay_loop			                  @ Delay to make the transmission stable
+		B transmit_loop			                @ Loop the transmission process
+
+@ Basic delay function following the lecture
+delay_loop:
+	LDR R9, =0xfffff                       @ Arbitrary value (should be large enough)
+delay_inner:
+	SUBS R9, #1
+	BGT delay_inner
+	BX LR
+
+finish:
+	B finish			                      @ Inifnite loop to terminate
