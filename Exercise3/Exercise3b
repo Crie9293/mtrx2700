@@ -1,0 +1,29 @@
+.syntax unified
+.thumb
+
+.data
+.align 2
+tx_string: .asciz "man! im broke"    @ Source string
+terminator: .asciz "!"              @ Termination character
+incoming_buffer: .space 129         @ Destination buffer
+
+.text
+.global main
+
+main:
+    LDR R1, =incoming_buffer   @ Destination buffer pointer in R1
+    LDR R2, =tx_string         @ Source string pointer in R2
+    LDR R6, =terminator       @ Load termination character into R5
+    MOV R3, #0                 @ Counter initialization
+
+copy_loop:
+    LDRB R4, [R2], #1          @ Load next character from source into R4, post-increment pointer R2
+    LDRB R5, [R6]
+    CMP R4, R5                 @ Compare loaded character with terminator
+    BEQ exit                   @ If equal, exit without storing the termination character
+    STRB R4, [R1, R3]          @ Store the character in the destination buffer
+    ADD R3, R3, #1             @ Increment the counter (or buffer offset)
+    B copy_loop                @ Continue the loop
+
+exit:
+    B exit                     @ Infinite loop (end of program)
