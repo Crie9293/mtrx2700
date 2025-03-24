@@ -48,8 +48,6 @@ load_message:
 		CMP R5, #0				@ Check if it's end of string
 		BEQ end_loop
 		BL uart_loop
-		SUBS R4, #1
-		BGT transmit_loop
 
 end_loop:
 	LDR R0, =terminating_char
