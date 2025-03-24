@@ -4,74 +4,75 @@
 #include "initialise.s"
 
 .data
-message: .asciz "Mech2700!"  @ Null-terminated string
-terminating_char: .byte '$'
+message: .asciz "Mech2700!"  		@ Null-terminated string
+terminating_char: .byte '$'		@ User-defined terminating string to be appended
 
 
 .text
 .global partA
 partA:
-    @ Initialize peripherals and UART
+    @ Initialize peripherals and UART (taken from lectures)
     BL initialise_power
     BL enable_peripheral_clocks
     BL enable_uart
     B main_flow
 
-main_flow:
-	BL check_button
+main_flow:				@ To control the flow of the program
+	BL check_button			
 	BL load_message
 	B main_flow
 
 check_button:
-    LDR R0, =GPIOA
+    LDR R0, =GPIOA			@ Load GPIOA address into R0 (button bit)
 poll_press:
-    LDR R3, [R0, #GPIO_IDR]   @ Read button state
-    TST R3, #1                @ Check if PA0 is pressed
-    BEQ poll_press            @ Keep polling if not pressed
+    LDR R3, [R0, #GPIO_IDR]   		@ Read button state (0 = not pressed, 1 = pressed)
+    TST R3, #1               		@ Check if PA0 is pressed (bit if button)
+    BEQ poll_press            		@ Keep polling if not pressed 
 
 poll_release:
-    LDR R3, [R0, #GPIO_IDR]   @ Read button state again
-    TST R3, #1                @ Check if PA0 is still pressed
-    BNE poll_release          @ Wait until button is released
+    LDR R3, [R0, #GPIO_IDR]   		@ Read button state again
+    TST R3, #1                		@ Check if PA0 is still pressed
+    BNE poll_release          		@ Wait until button is released
 
-    BX LR
+    BX LR				@ Go back to the main flow (load_message)
 
 
 load_message:
-	LDR R1, =message           @ Load address of message
+	LDR R1, =message           	@ Load address of message
 	transmit_loop:
-		LDRB R5, [R1], #1		@ Post increment by 1
-		CMP R5, #0				@ Check if it's end of string
-		BEQ end_loop
-		B uart_loop
+		LDRB R5, [R1], #1	@ Post increment by 1
+		CMP R5, #0		@ Check if it's end of string
+		BEQ end_loop		@ Branch to end loop if null terminator detected
+		B uart_loop		@ If not end of string, continue the transmission
 
 end_loop:
-	LDR R0, =terminating_char
-	LDRB R5, [R0]
+	LDR R0, =terminating_char	@ Set R0 to the terminating char
+	LDRB R5, [R0]			@ Get the byte of the terminating char
 	poll_end:
-		LDR R0, =UART
-		LDR R3, [R0, USART_ISR]
-		ANDS R3, #1 << UART_TXE
-		BEQ poll_end
+		LDR R0, =UART			@ Get address of UART 
+		LDR R3, [R0, USART_ISR]		@ Read the UART status register
+		ANDS R3, #1 << UART_TXE		@ Check if TX buffer is empty (ready to transmit)
+		BEQ poll_end			@ If not empty, keep on checking
 
-		STRB R5, [R0, USART_TDR]
-B main_flow
+		STRB R5, [R0, USART_TDR]	@ Transmit the terminating character 
+		B main_flow			@ Restart the whole process (wait for button input)
 
 uart_loop:
-	LDR R0, =UART
+	LDR R0, =UART				@ Get address of UART
 
-	poll_uart:
-		LDR R3, [R0, USART_ISR]
+	poll_uart:				
+		LDR R3, [R0, USART_ISR]		@ Read the UART status register
 
-		ANDS R3, #1 << UART_TXE
-		BEQ uart_loop
+		ANDS R3, #1 << UART_TXE		@ Check if TX bufer is empy (ready to transmit)
+		BEQ uart_loop			@ If not empty, keep on checking
 
-		STRB R5, [R0, USART_TDR]
-		BL delay_loop
-		B transmit_loop
+		STRB R5, [R0, USART_TDR]	@ Transmit the current character
+		BL delay_loop			@ Delay to make the transmission stable
+		B transmit_loop			@ Loop the transmission process
 
+@ Basic delay function following the lecture
 delay_loop:
-	LDR R9, =0xfffff
+	LDR R9, =0xfffff 			@ Arbitrary value (should be large enough)
 delay_inner:
 	SUBS R9, #1
 	BGT delay_inner
