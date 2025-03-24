@@ -5,7 +5,6 @@
 
 .data
 message: .asciz "Mech2700!"  @ Null-terminated string
-message_length: .byte 9
 terminating_char: .byte '$'
 
 
@@ -40,9 +39,6 @@ poll_release:
 
 load_message:
 	LDR R1, =message           @ Load address of message
-	LDR R4, =message_length		@ Load length of message
-	LDR R4, [R4]
-
 	transmit_loop:
 		LDRB R5, [R1], #1		@ Post increment by 1
 		CMP R5, #0				@ Check if it's end of string
