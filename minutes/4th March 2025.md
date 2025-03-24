@@ -14,3 +14,4 @@
 * 1.3 Exercise 1a: Qianhui Cao
 * 1.3 Exercise 1b: Daniel Maynard
 * 1.4 Exercise 2a: Callum Riethmuller & Nicholas Tika
+* 1.4 Exercise 2b: Callum Riethmuller & Nicholas Tika
