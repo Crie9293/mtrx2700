@@ -1,0 +1,43 @@
+.syntax unified
+.thumb
+
+.global main
+
+.data
+ascii_string: .asciz "Hello!"
+
+.text
+main:
+    LDR  R1, =ascii_string   @ R1 points to the string
+    MOV  R2, #0              @ Conversion mode: 0 = convert to lowercase; non-0 = convert to uppercase
+
+loop:
+    LDRB R4, [R1]           @ Load the current character into R4
+    CMP  R4, #0             @ Check for string termination
+    BEQ  done
+
+    CMP  R2, #0            @ Check conversion mode
+    BEQ  conv_lower        @ If mode is 0, convert uppercase to lowercase
+
+    @ Mode non-zero: convert lowercase to uppercase
+    CMP  R4, #'a'
+    BLT  store_char
+    CMP  R4, #'z'
+    BGT  store_char
+    SUB  R4, R4, #32       @ Convert to uppercase
+    B    store_char
+
+conv_lower:
+    CMP  R4, #'A'
+    BLT  store_char
+    CMP  R4, #'Z'
+    BGT  store_char
+    ADD  R4, R4, #32       @ Convert to lowercase
+
+store_char:
+    STRB R4, [R1]          @ Store the converted character back in memory
+    ADD  R1, R1, #1        @ Move to the next character
+    B    loop
+
+done:
+    B    done              @ Infinite loop (or add exit logic as needed)
