@@ -1,0 +1,63 @@
+.syntax unified       @ Use unified syntax (ARM and Thumb instructions)
+.thumb                @ Use Thumb instruction set
+
+.global partB         @ Make partB function visible to the linker
+
+.data
+terminating_char: .byte 0x24  @ ASCII value for '$' as the terminating character
+
+.text                 @ Start of the code section
+
+partB:
+    @ Function: Receives characters via UART and stores them in a buffer
+    @ Parameters:
+    @   R1 - Address of the buffer where characters will be stored
+    
+    MOV R8, #0        @ Initialize index counter for buffer position
+    
+    @ Load the user-defined terminating character
+    LDR R2, =terminating_char
+    LDRB R2, [R2]     @ R2 now contains the terminating character '$'
+    
+receive_char:
+    LDR R0, =UART     @ Load UART base address
+    LDR R4, [R0, USART_ISR]  @ Load UART status register
+    
+    @ Check for receive errors (Overrun Error or Framing Error)
+    TST R4, 1 << UART_ORE | 1 << UART_FE
+    BNE clear_error   @ Branch to error handler if any error detected
+    
+    @ Check if there is data available to read (RXNE: Receive buffer not empty)
+    TST R4, 1 << UART_RXNE
+    BEQ receive_char  @ If no data available, keep polling
+    
+    @ Read the received character from data register
+    LDRB R4, [R0, USART_RDR]
+    
+    @ Check if the received character is the terminating character '$'
+    CMP R4, R2
+    BEQ store_null    @ If terminating character received, end reception
+    
+    @ Store the character in the buffer at current position and advance
+    STRB R4, [R1, R8]  @ Store byte at buffer address + index
+    ADD R8, #1         @ Increment buffer index
+    
+    @ Check if we've reached a reasonable buffer size limit (assuming R3 holds max size)
+    @ If R3 isn't set, you might want to use a hardcoded value like 128
+    CMP R8, #128       @ Assuming maximum buffer size of 128 bytes
+    BGE store_null     @ If buffer full, terminate the string and exit
+    
+    B receive_char     @ Continue receiving next character
+    
+store_null:
+    @ Null-terminate the string for C compatibility
+    MOV R4, #0         @ Load null character (0x00)
+    STRB R4, [R1, R8]  @ Store null at the end of the string
+    BX LR              @ Return to caller
+    
+clear_error:
+    @ Clear any UART receive errors
+    LDR R4, [R0, USART_ICR]                 @ Load interrupt clear register
+    ORR R4, 1 << UART_ORECF | 1 << UART_FECF @ Set bits to clear overrun and framing errors
+    STR R4, [R0, USART_ICR]                 @ Write back to clear the errors
+    B receive_char                          @ Return to character reception
