@@ -1,86 +1,75 @@
-// Include the definition and initialization files
-#include "initialise.s"
-#include "definitions.s"
-
 .syntax unified
 .thumb
-.global partA
 
-// Terminating character
-.equ TERM_CHAR, '$'
-// User-defined terminating character
+#include "initialise.s"
 
 .data
-.align
-txString:
-    .asciz "Khit\r\n"    // The r is a carriage return. The n is a new line
-txLength:
-    .byte 6
+message: .asciz "Mech2700!"  @ Null-terminated string
+terminating_char: .byte '$'
+
 
 .text
-// Entry point
+.global partA
 partA:
-    BL enableGPIOClocks
+    @ Initialize peripherals and UART
+    BL initialise_power
+    BL enable_peripheral_clocks
     BL enable_uart
-    B buttonMonitor      // Instead of directly transmitting, monitor button
+    B main_flow
 
-// New function: Monitor button press
-buttonMonitor:
-    LDR R0, =GPIOA            // Load GPIO Port A address (for button)
-    LDR R1, [R0, #GPIO_IDR]   // Read input data register
-    TST R1, #0
-    BEQ buttonMonitor         // If not pressed, keep checking
+main_flow:
+	BL check_button
+	BL load_message
+	B main_flow
 
-    // Button is pressed, load string address into R1 and call transmitString
-    LDR R1, =txString
-    BL transmitString
+check_button:
+    LDR R0, =GPIOA
+poll_press:
+    LDR R3, [R0, #GPIO_IDR]   @ Read button state
+    TST R3, #1                @ Check if PA0 is pressed
+    BEQ poll_press            @ Keep polling if not pressed
 
-    // Small delay to debounce button
-    LDR R9, =0x50000
-debounce:
-    SUBS R9, #1
-    BGT debounce
+poll_release:
+    LDR R3, [R0, #GPIO_IDR]   @ Read button state again
+    TST R3, #1                @ Check if PA0 is still pressed
+    BNE poll_release          @ Wait until button is released
 
-    B buttonMonitor          // Go back to monitoring button
+    BX LR
 
-// New function: Transmit any string passed in R1
-transmitString:
-    PUSH {R4-R7, LR}         // Save registers we'll use
-    MOV R6, R1               // Copy string address to R6
-    MOV R7, #0               // Initialize character counter
 
-    // First pass to count characters until null terminator
-countLoop:
-    LDRB R4, [R6, R7]        // Load character at position R7
-    CMP R4, #0               // Check if it's null terminator
-    BEQ prepTransmit         // If yes, prepare for transmission
-    ADD R7, #1               // Increment counter
-    B countLoop              // Continue counting
+load_message:
+	LDR R1, =message           @ Load address of message
 
-prepTransmit:
-    LDR R0, =USART1           // Load UART1 base address
-    MOV R4, R7               // Copy character count to R4
-    MOV R3, R1               // Copy string address to R3
+	transmit_loop:
+		LDRB R5, [R1], #1		@ Post increment by 1
+		CMP R5, #0				@ Check if it's end of string
+		BEQ end_loop
+		BL uart_loop
+		B transmit_loop
 
-transmitLoop:
-    LDR R5, [R0, #USART_ISR]  // Load the status register into R5
-    TST R5, #(1 << UART_TXE) // Check if TXE bit is set
-    BEQ transmitLoop         // Wait (loop) until it is set
+end_loop:
+	LDR R0, =terminating_char
+	LDRB R2, [R0]
+	BL uart_loop
+	BX LR
 
-    CMP R4, #0               // Check if we've sent all characters
-    BEQ sendTerminator       // If yes, send terminating character
+uart_loop:
+	LDR R0, =UART
+	LDR R3, [R0, USART_ISR]
 
-    LDRB R5, [R3], #1        // Load the next character in the string and point to the next entry
-    STRB R5, [R0, #USART_TDR] // Transmit the character
-    SUBS R4, #1              // Decrement character count
-    B transmitLoop           // Continue transmitting
+	ANDS R3, #1 << UART_TXE
+	BEQ uart_loop
 
-sendTerminator:
-    LDR R5, [R0, #USART_ISR]  // Check status register again
-    TST R5, #(1 << UART_TXE) // Check if TXE bit is set
-    BEQ sendTerminator       // Wait until ready
+	STRB R5, [R0, USART_TDR]
 
-    MOV R5, #TERM_CHAR       // Load terminating character
-    STRB R5, [R0, #USART_TDR] // Transmit terminating character
+	BL delay_loop
+	B transmit_loop
 
-    POP {R4-R7, PC}          // Restore registers and return
+delay_loop:
+	LDR R9, =0xfffff
+	B delay_inner
+
+delay_inner:
+	SUBS R9, #1
+	BGT delay_inner
+	BX LR
