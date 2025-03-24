@@ -40,7 +40,7 @@ poll_release:
 load_message:
 	LDR R1, =message           	@ Load address of message
 	transmit_loop:
-		LDRB R5, [R1], #1	@ Post increment by 1
+		LDRB R5, [R1], #1	@ Loads the char into R5 and post increment R1 by 1
 		CMP R5, #0		@ Check if it's end of string
 		BEQ end_loop		@ Branch to end loop if null terminator detected
 		B uart_loop		@ If not end of string, continue the transmission
