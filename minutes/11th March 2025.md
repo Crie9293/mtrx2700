@@ -9,5 +9,11 @@
 * Nicholas Tika
 * Qianhui Cao
 ### Agenda items
-* Finalize Exercise 1 and 2
+* Finalize Exercise 1a: Qianhui Cao
+* Finalize Exercise 1b: Qianhui Cao
+* Finalize Exercise 1c: Daniel Maynard
+* Finalize Exercise 2a: Daniel Maynard
+* Finalize Exercise 2b: Callum Riethmuller
+* Finalize Exercise 2c: Qianhui Cao
+* Finalize Exercise 2d: Nicholas Tika
 * Start Exercise 3
