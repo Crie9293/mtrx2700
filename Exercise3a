@@ -5,7 +5,7 @@
 
 .data
 message: .asciz "Mech2700!"  @ Null-terminated string
-message_length: .byte 10
+message_length: .byte 9
 terminating_char: .byte '$'
 
 
