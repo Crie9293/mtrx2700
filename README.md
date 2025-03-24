@@ -232,6 +232,7 @@ This code involved uncommenting a line from the Week 3 UART example code to call
 
 The same baud rate must be maintained for the computer to continue to be able to communicate with the microcontroller through the UART. We are over sampling by 16 so use the equation:
 <img width="278" alt="Screenshot 2025-03-25 at 10 47 56 AM" src="https://github.com/user-attachments/assets/8e225650-711f-470f-af53-e7ecac45787b" />
+
 Our desired baud rate is 115,200. Previously, this gave USARTDIV = 8,000,000 / 115,200 = 0x46, with the new clock speed we get USARTDIV = 48,000,000 / 115,200 = 0x1A1.
 ```
 @ this is the baud rate
