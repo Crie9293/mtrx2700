@@ -214,7 +214,40 @@ delay_inner:
 ```
 
 ### 3.b
+For this task, we are typing a string for the UART to receive, unlike in 3a. We define a custom terminating character to make the UART stop reading once it reaches this character. We also define a buffer space.
+Similar to the structure of the code above, we check if the UART is ready to receive data before load the data in to the UART. Afterwards, we store it into the buffer.
+```
+receive_char:
+    LDR R0, =UART			@ Load UART address
+    LDR R4, [R0, USART_ISR]		@ Read the UART status register
 
+    @ Error checking 
+    TST R4, 1 << UART_ORE | 1 << UART_FE
+    BNE clear_error			
+
+    TST R4, 1 << UART_RXNE		@ Check if UART is ready to receive data
+    BEQ receive_char			
+
+    LDRB R4, [R0, USART_RDR]		@ Read the received character/byte from the UART
+
+    CMP R4, R2				@ Check if current char is same as the terminating char
+    BEQ store_null
+
+    @ Store character and increment counter
+    STRB R4, [R1, R8]			@ Store the character in the buffer at index R8
+    ADD R8, #1				@ Increment the index/count of R8
+
+    @ Check buffer limit
+    CMP R8, R7
+    BGE store_null            		@ If buffer is at max capacity, terminate
+
+    B receive_char            		@ Continue the receiving loop
+
+store_null:
+    STRB R2, [R1, R8]        		@ Null-terminate the string
+    B finish                    	@ Stop the program
+```
+The microcontroller checks if the current string is the custom terminating character and if so, it branches onto another function to stop reading the string. 
 
 
 ### 3.c
@@ -242,7 +275,19 @@ MOV R1, #0x1A1 @ From calculation for clock at 48MHz
 
 
 ### 3.d
+Here, we are basically just putting 3a and 3b alltogether. After reading the string and storing it in the buffer, it will retransmit back on the same UART until it reaches the terminating character. The first half of the code will be the same as 3b and the second half would be similar to 3a with some changes.
+```
+store_null:
+    STRB R2, [R1, R8]                   @ Null-terminate the string
+    B transmit_loop                     @ transmit the string in same UART
 
+transmit_loop:
+	LDRB R5, [R1], #1		@ Loads the char into R5 and post increment R1 by 1
+	CMP R5, R2			@ Check if current char is same as the terminating char
+	BEQ end_loop
+	B uart_loop
+```
+After storing the terminating character in the buffer, we branch to the transmitting function where we not check if the current character is the same as the terminating character. This is a slight modification from part 3a where we want to append a terminating character at the end of the string. The rest of the code follows the same structure.
 
 
 
