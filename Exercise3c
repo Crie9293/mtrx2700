@@ -1,0 +1,107 @@
+.syntax unified
+.thumb
+
+#include "initialise.s"
+
+.global partC
+
+.data
+.align
+terminating_char: .ascii "$"             @ Custom terminating character
+
+buffer: .space 129
+counter: .byte 129
+
+.text
+
+partC:
+    BL initialise_power
+    BL enable_peripheral_clocks
+    BL enable_uart
+
+    @ --- LOAD BUFFER ADDRESSES ---
+    LDR R2, =terminating_char
+    LDRB R2, [R2]
+    LDR R1, =buffer
+    LDR R7, =counter
+    LDRB R7, [R7]
+    MOV R8, #0x00			@ Counter
+
+receive_char:
+    LDR R0, =UART
+    LDR R4, [R0, USART_ISR]
+
+    @ Error check
+    TST R4, 1 << UART_ORE | 1 << UART_FE
+    BNE clear_error
+
+    @ Wait for data
+    TST R4, 1 << UART_RXNE
+    BEQ receive_char
+
+    @ Read character
+    LDRB R4, [R0, USART_RDR]
+
+    @ Check for terminating character
+    CMP R4, R2
+    BEQ store_null
+
+    @ Store character and increment counter
+    STRB R4, [R1, R8]
+    ADD R8, #1
+
+    @ Check buffer limit
+    CMP R8, R7
+    BGE store_null            @ If buffer full, terminate
+
+    B receive_char            @ Continue receiving
+
+store_null:
+    STRB R2, [R1, R8]        @ Null-terminate the string
+    ADD R8, #1
+    B transmit_loop                    @ transmit the string in same UART
+
+clear_error:
+    LDR R4, [R0, USART_ICR]
+    ORR R4, 1 << UART_ORECF | 1 << UART_FECF
+    STR R4, [R0, USART_ICR]
+    B receive_char
+
+transmit_loop:
+	LDRB R5, [R1], #1		@ Post increment by 1
+	CMP R5, R2				@ Check if it's end of string
+	BEQ end_loop
+	B uart_loop
+
+end_loop:
+	LDR R0, =UART
+	LDR R3, [R0, USART_ISR]
+	ANDS R3, #1 << UART_TXE
+	BEQ end_loop
+
+	STRB R2, [R0, USART_TDR]
+
+	B finish
+
+uart_loop:
+	LDR R0, =UART
+
+	poll_uart:
+		LDR R3, [R0, USART_ISR]
+
+		ANDS R3, #1 << UART_TXE
+		BEQ uart_loop
+
+		STRB R5, [R0, USART_TDR]
+		BL delay_loop
+		B transmit_loop
+
+delay_loop:
+	LDR R9, =0xfffff
+delay_inner:
+	SUBS R9, #1
+	BGT delay_inner
+	BX LR
+
+finish:
+	B finish			@ Inifnite loop to terminate
