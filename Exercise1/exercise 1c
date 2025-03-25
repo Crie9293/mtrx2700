@@ -10,7 +10,8 @@ ascii_string: .asciz "aAa!"
 main:
     LDR R1,=ascii_string
     MOV R2,#-1
-	CMP R2, 0
+	CMP R2, #0
+	B end
 
 caeser_cypher:
     LDRB R3,[R1]
