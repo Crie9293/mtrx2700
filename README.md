@@ -237,7 +237,6 @@ inc_count_consonant:
     B letter_loop               @ Continue loop
 
 done:
-    MOV R5, R2      			@ Return vowel count in R1
     MOV R9, #0					@ Display state
     B display_loop
 
@@ -247,7 +246,7 @@ display_loop:
     B show_consonants       	@ If not, show consonants
 
 show_vowels:
-    STRB R5, [R6, #ODR +1]  	@ Show vowel count on LEDs
+    STRB R2, [R6, #ODR +1]  	@ Show vowel count on LEDs
     BL check_button_debounced
     CMP R0, #1              	@ Check if button pressed
     BNE display_loop        	@ If not, loop vowel LED
