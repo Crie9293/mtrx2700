@@ -456,7 +456,7 @@ This exercise uses ARPE and ARR to make a highly accurate delay function entirel
 
 ## Exercise 5
 This final exercise essentially requires us to implement all of the previous modules. To do this, we have to connect the two microcontrollers so that they can communicate with each other. We do this by connecting the UART pins to each other (TX & RX) and both grounds should also be connected. 
-
+![IMG_4820](https://github.com/user-attachments/assets/a161d566-e302-401b-b166-59e229710f97)
 
 
 ### Receiving Message
