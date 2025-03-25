@@ -459,7 +459,7 @@ This means the timer counts at **1000 ticks per second**. For a delay of 1000 ti
 
 $$\text{Delay} = \frac{\text{Clock ticks}}{f_{timer}} = \frac{1000}{1000} = 1 \, \text{second}$$
 
-Using this equation to achieve a delay of 1$$\mu s$$ and 1 hour respectively, a prescaler of 7 and 28,799,999 must be used.
+Using this equation to achieve a delay of 1 microsecond and 1 hour respectively, a prescaler of 7 and 28,799,999 must be used.
 
 ### 4.c
 This exercise uses ARPE and ARR to make a highly accurate delay function entirely managed in hardware. TIM_ARR is already implemented, however when the ARPE bit equals 1, this makes it so when changing the ARR value, it only changes once it resets which creates safer code as it does not interrupt the current cycle. The bit is sotred in the 7th bit of the TIM_CR1 register thus is set using the following code.
