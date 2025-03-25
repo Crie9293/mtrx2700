@@ -46,12 +46,12 @@ main:
 	BL enableGPIOClocks
 	BL enableLEDs
 
-	MOV R1, #3000   @ 1ms delay
+	MOV R1, #3000   @  delay
 
-    LDR R0, =RCC	@ load the base adress for the timer
-    LDR R2, [R0, #APB1ENR]    @ load peripheral control clock register
-	  ORR R2, 1 << TIM2EN      @ enable tim2 flag
-    STR R2, [R0, #APB1ENR]
+  	LDR R0, =RCC	@ load the base adress for the timer
+  	LDR R2, [R0, #APB1ENR]    @ load peripheral control clock register
+	ORR R2, 1 << TIM2EN      @ enable tim2 flag
+        STR R2, [R0, #APB1ENR]
 
 	LDR R0, =TIM2
     MOV R2, #7999  @ set prescaler
@@ -74,13 +74,13 @@ main:
 delay:
 	LDR R7, =0b00000000
 	LDR R6, =GPIOE
-	STRB R7, [R6, #ODR + 1]
-    LDR R2, [R0, #TIM_CNT]
-    CMP R2, R1	 @ check if reached delay time
-    BLT delay	 @ if CNT < delay, loop
+    	STRB R7, [R6, #ODR + 1]
+    	LDR R2, [R0, #TIM_CNT]
+   	 CMP R2, R1	 @ check if reached delay time
+   	 BLT delay	 @ if CNT < delay, loop
 
-    //MOV R2, #0                   @ stop timer
-    //STR R2, [R0, #TIM_CR1]       @ disable TIM2
+   	 //MOV R2, #0                   @ stop timer
+ 	   //STR R2, [R0, #TIM_CR1]       @ disable TIM2
 
 Turnon:
 	LDR R7, =0b11111111
