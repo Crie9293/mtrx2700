@@ -348,6 +348,7 @@ listen_loop:
 
 #### Retransmitting the characters on a different UART
 Here, we first check if USART1's transmit buffer is empty, continually looping until it is. Once it is, we store the character saved in register R2 to the memory address where it is transmitted back.
+NOTE: We use essentially the same code to send the characters from the first microcontroller to the second just swapping out LDR R0, =USART1 to LDR RO, =UART4.
 ```
 transmit_wait:
     @ Wait for transmit buffer to be empty
