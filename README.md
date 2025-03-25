@@ -95,8 +95,14 @@ The new cyphered ascii string is stored in R3
 ## Exercise 2
 ### 2.a
 For this exercise, we simply perform a bitmask operation on the GPIO registers of the LED.
-
-
+```
+LDR R4, =0b10101010 @ load a pattern for the set of LEDs (every second one is on)
+```
+The code shown above is the bitmasking used to light up the LED with a given pattern. We then store this binary value in R4 into the bits of the LED located in the GPIOE as shown below
+```
+LDR R0, =GPIOE  @ load the address of the GPIOE register into R0
+STRB R4, [R0, #ODR + 1]   @ store the LED pattern byte to the second byte of the ODR (bits 8-15)
+```
 
 ### 2.b
 To add the amount of LEDs that lit up when the button is pressed, we first need to initialise the correct GPIOs.
@@ -115,7 +121,46 @@ To light up the neighboring LED, we perform a left shift operation and a bitmask
 Keep on looping until it reaches the maximum amount of LEDs (8) then stop.
 
 ### 2.c
+Modifying 2b, we get another function that decreases the amount of LED lighting up each time the button is pressed. We store the direction of the LED lighting up using one of the registers available.
+```
+ @ update counter base on directioin
+ CMP R8, #1
+ BEQ increment_mode
+ B decrement_mode
 
+increment_mode:
+ ADD R9, #1
+ CMP R9, #8
+ BLS update_leds
+
+ @ change direction when reached max
+ MOV R8, #0 @ change to decrease
+
+ STR R8, [R7] @ store new direction
+
+ B update_leds
+
+decrement_mode:
+
+ SUBS R9, #1
+ BHI update_leds
+ @ change direction when reached min
+ MOV R8, #1 @ change to increase
+ STR R8, [R7]
+ MOV R9, #1 @ reset counter
+ LDR R6, =0x00000100 @ reset LED pattern
+ STR R6, [R5]
+
+ B program_loop
+```
+To decrement the LED, we perform the opposite bitmasking as in 2b.
+```
+ LSL R6, #1 @ Shift left to add more LED
+
+ ORR R6, #0x00000100 @ Keeps lowest LED on
+
+ STR R6, [R5]
+```
 
 
 
