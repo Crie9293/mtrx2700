@@ -328,6 +328,31 @@ After storing the terminating character in the buffer, we branch to the transmit
 
 ## Exercise 4
 ### 4.a
+This exercise makes use of the hardware timer in the STM controller to simulate a time delay. In order to accomplish this the following registers must be activated.
+```
+main: 
+    MOV R1, #0x3E8   @ 1ms delay
+
+    LDR R0, =RCC	@ load the base adress for the timer
+    LDR R2, [R0, #APB1ENR]    @ load peripheral control clock register
+    ORR R2, 1 << TIM2EN      @ enable tim2 flag
+    STR R2, [R0, #APB1ENR]
+
+
+    LDR R0, =TIM2
+    MOV R2, #1000		@ AAR value set as 1000ms
+    STR R2, [R0, #TIM_ARR]	@ store auto-reload value
+
+    MOV R2, #0
+    STR R2, [R0, #TIM_CNT]	@ reset and clear the counter
+
+    MOV R2, #1
+    STR R2, [R0, #TIM_CR1]	@start the timer
+```
+- **TIM2EN**: The bit that enables the TIM2 clock.
+- **TIM_ARR**: The auto-reload register, which resets the timer count back to zero once it reaches this value.
+- **TIM_CNT**: The count register, which contains the number of clock ticks that have passed.
+- **TIM_CR1**: The timer control register, which ensures the timer is running.
 
 
 
