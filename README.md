@@ -354,14 +354,49 @@ main:
 - **TIM_CNT**: The count register, which contains the number of clock ticks that have passed.
 - **TIM_CR1**: The timer control register, which ensures the timer is running.
 
+After these are set up, a simple polling technique is used to create a delay.
+```
+delay:
+    LDR R2, [R0, #TIM_CNT]
+    CMP R2, R1	 		@ check if reached delay time
+    BLT delay	 		@ if CNT < delay, loop
 
+    MOV R2, #0                   @ stop timer
+    STR R2, [R0, #TIM_CR1]       @ disable TIM2
+```
+It functions by constantly checking the the count has reached to preset delay value in R1, the timer is then stopped and the function passes when this happens.
 
 
 ### 4.b
+This part implements the prescaler function, which allows for the timer speed to be changed and thus delay period to be increased/decreased.
+```
+    LDR R0, =TIM2
+    MOV R2, #7999  @ set prescaler
+    STR R2, [R0, #TIM_PSC]
+```
+Upon storing a value in the prescaler register, the following equation sets the new timer speed.
+
+\[
+f_{timer} = \frac{f_{clock}}{\text{PSC} + 1}
+\]
+
+Where:
+- \( f_{timer} \) is the timer's frequency after prescaling.
+- \( f_{clock} \) is the input clock frequency to the timer.
+- \( \text{PSC} \) is the value loaded into the prescaler register.
+
+The hardware clock has a frequency of 8Mhz, assuming the delay is set to a value of 1000, (takes 1000 clock ticks to reach delay.) Setting the prescaler value to 7999 will produce a delay of 1s. 
 
 
+\[
+f_{timer} = \frac{8,000,000}{7999 + 1} = \frac{8,000,000}{8000} = 1000 \, \text{Hz}
+\]
 
+This means the timer counts at **1000 ticks per second**. For a delay of 1000 ticks:
 
+\[
+\text{Delay} = \frac{\text{Clock ticks}}{f_{timer}} = \frac{1000}{1000} = 1 \, \text{second}
+\]
 
 ### 4.c
 
