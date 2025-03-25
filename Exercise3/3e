@@ -1,0 +1,39 @@
+.syntax unified
+.thumb
+#include "initialise.s"
+
+.global ainuart_port_forward
+
+.text
+main:
+	BL initialise_power
+    BL enable_peripheral_clocks
+    BL enable_uart
+    BL init_uart_port_forward
+    B listen_loop   @ This will run indefinitely
+
+listen_loop:
+    @ Check USART2 for incoming data
+    LDR R0, =UART4  @ Load base address of secondary UART
+    LDR R1, [R0, USART_ISR]  @ Load UART status register
+	LDR R2, 1 << UART_RXNE
+    TST R1, 1 << UART_RXNE @ Check if ready to read
+    BEQ listen_loop  @ If no data, keep listening
+
+    @ Read character from secondary UART
+    LDRB R2, [R0, USART_RDR]  @ Read received character
+
+    @ Prepare USART1 for transmission
+    LDR R0, =USART1  @ Load base address of primary UART (PC connection)
+
+transmit_wait:
+    @ Wait for transmit buffer to be empty
+    LDR R1, [R0, USART_ISR]
+    TST R1, 1 << UART_TXE
+    BEQ transmit_wait  @ Wait if transmit buffer not empty
+
+    @ Transmit the character on USART1
+    STRB R2, [R0, USART_TDR]
+
+    @ Optional: Echo character back to secondary UART
+    LDR R0, =USART2  @ Switch back to secondary UART
