@@ -322,7 +322,51 @@ After storing the terminating character in the buffer, we branch to the transmit
 
 
 ### 3.e
+### 3.e
+For this exercise, we use one microcontroller connected to one computer to transmit, through UART4, characters to another microcontroller. This second microcontroller connected to a second computer reads these incoming character from UART4 and transmits them to USART1 where we can display them on a terminal emulator demonstrating they are now on the second computer.
 
+We split the code for 3e into two modules:
+* Code for reading incoming characters
+* Code for transmitting/retransmitting the characters on a different UART
+  
+#### Code for reading incoming characters
+Here, we check UART4's status register, we continually loop until data is detected. Once detected, we save the byte (character) into register R2.
+```
+listen_loop:
+    @ Check UART4 for incoming data
+    LDR R0, =UART4  @ Load base address of UART4
+    LDR R1, [R0, USART_ISR]  @ Load UART status register
+	LDR R2, 1 << UART_RXNE
+    TST R1, 1 << UART_RXNE @ Check if ready to read
+    BEQ listen_loop  @ If no data, keep listening
+
+    @ Read character from secondary UART
+    LDRB R2, [R0, USART_RDR]  @ Read received character
+
+    @ Prepare USART1 for transmission
+    LDR R0, =USART1  @ Load base address of primary UART (PC connection)
+```
+
+#### Retransmitting the characters on a different UART
+Here, we first check if USART1's transmit buffer is empty, continually looping until it is. Once it is, we store the character saved in register R2 to the memory address where it is transmitted back.
+```
+transmit_wait:
+    @ Wait for transmit buffer to be empty
+    LDR R0, =USART1 @ Load base address of USART1
+    LDR R1, [R0, USART_ISR]
+    TST R1, 1 << UART_TXE
+    BEQ transmit_wait  @ Wait if transmit buffer not empty
+
+    @ Transmit the character on USART1
+    STRB R2, [R0, USART_TDR]
+
+    @ Optional: Echo character back to secondary UART
+    LDR R0, =UART4 @ Switch back to secondary UART
+```
+
+#### Hardware
+In terms of hardware, we can receive data using PA1 as UART4's RX (receiving pin) and PA10 as USART1's RX. We can send data using PA9 as USART1's TX (transmission pin) and PA0 as UART4's TX. 
+![IMG_4820](https://github.com/user-attachments/assets/a161d566-e302-401b-b166-59e229710f97)
 
 
 
