@@ -376,9 +376,9 @@ This part implements the prescaler function, which allows for the timer speed to
 ```
 Upon storing a value in the prescaler register, the following equation sets the new timer speed.
 
-$
-f_{timer} = \frac{f_{clock}}{\text{PSC} + 1}
-$
+
+$$f_{timer} = \frac{f_{clock}}{\text{PSC} + 1}$$
+
 
 Where:
 - \( f_{timer} \) is the timer's frequency after prescaling.
