@@ -228,8 +228,40 @@ Using this function will ensure that the button has been released before startin
 
 #### LEDs
 ```
-STRB R5, [R6, #ODR +1]  		@ Show vowel count on LEDs
-STRB R3, [R6, #ODR +1]  		@ Show consonant count on LEDs
+inc_count_vowel:
+    ADD R2, R2, #1        		@ Increment vowel count
+    B letter_loop              	@ Continue loop
+
+inc_count_consonant:
+    ADD R3, R3, #1        		@ Increment consonant count
+    B letter_loop               @ Continue loop
+
+done:
+    MOV R5, R2      			@ Return vowel count in R1
+    MOV R9, #0					@ Display state
+    B display_loop
+
+display_loop:
+    CMP R9, #0             		@ Check current display state
+    BEQ show_vowels         	@ If 0, show vowels
+    B show_consonants       	@ If not, show consonants
+
+show_vowels:
+    STRB R5, [R6, #ODR +1]  	@ Show vowel count on LEDs
+    BL check_button_debounced
+    CMP R0, #1              	@ Check if button pressed
+    BNE display_loop        	@ If not, loop vowel LED
+    MOV R9, #1              	@ Change state to consonants
+    B display_loop
+
+show_consonants:
+    STRB R3, [R6, #ODR +1]  	@ Show consonant count on LEDs
+    BL check_button_debounced
+    CMP R0, #1              	@ Check if button pressed?
+    BNE display_loop        	@ If not, loop consonants LED
+    MOV R9, #0              	@ Change state to vowels
+    B display_loop
+
 ```
 Here, we have #ODR + 1 because the bit location for the LEDs are located on bits 8-15 therefore we need to add the offset.
 
