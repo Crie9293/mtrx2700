@@ -20,7 +20,7 @@
 * Exercise 4A: Callum & Qianhui
 * Exercise 4B: Callum
 * Exercise 4C: Callum
-* Exercise 5: Callum, Nicholas and Daniel
+* Exercise 5: Callum, Nicholas & Daniel
 * Documentation: Everyone
 * Minutes: Qianhui and Daniel
   
