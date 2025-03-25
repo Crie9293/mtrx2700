@@ -381,22 +381,22 @@ $$f_{timer} = \frac{f_{clock}}{\text{PSC} + 1}$$
 
 
 Where:
-- \( f_{timer} \) is the timer's frequency after prescaling.
-- \( f_{clock} \) is the input clock frequency to the timer.
-- \( \text{PSC} \) is the value loaded into the prescaler register.
+- $$\( f_{timer} \)$$ is the timer's frequency after prescaling.
+- $$\( f_{clock} \)$$ is the input clock frequency to the timer.
+- $$\( \text{PSC} \)$$ is the value loaded into the prescaler register.
 
 The hardware clock has a frequency of 8Mhz, assuming the delay is set to a value of 1000, (takes 1000 clock ticks to reach delay.) Setting the prescaler value to 7999 will produce a delay of 1s. 
 
 
-$
-f_{timer} = \frac{8,000,000}{7999 + 1} = \frac{8,000,000}{8000} = 1000 \, \text{Hz}
-$
+
+$$f_{timer} = \frac{8,000,000}{7999 + 1} = \frac{8,000,000}{8000} = 1000 \, \text{Hz}$$
+
 
 This means the timer counts at **1000 ticks per second**. For a delay of 1000 ticks:
 
-$
-\text{Delay} = \frac{\text{Clock ticks}}{f_{timer}} = \frac{1000}{1000} = 1 \, \text{second}
-$
+
+$$\text{Delay} = \frac{\text{Clock ticks}}{f_{timer}} = \frac{1000}{1000} = 1 \, \text{second}$$
+
 
 ### 4.c
 
