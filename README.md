@@ -180,6 +180,51 @@ NOTE THAT THE COUNT IS IN BINARY!
 
 #### Button
 The button acts as a mode switch. Initially, the mode is set to show vowels so if we press the button, the mode will change to show consonants.
+```
+check_button_debounced:
+    PUSH {R1-R4, LR}        	@ Save registers
+
+    @ Check if button is pressed
+    LDR R1, [R7, #IDR]      	@ Read input data register
+    TST R1, #1              	@ Test bit 0 (USER button)
+    BNE button_not_pressed  	@ If not pressed, branch
+
+    LDR R4, =DEBOUNCE_DELAY		@ Add bounce delay
+
+debounce_loop:
+    SUBS R4, R4, #1         	@ Decrement counter
+    BNE debounce_loop       	@ Continue loop if not zero
+
+    @ Check if button is still pressed after delay
+    LDR R1, [R7, #IDR]      	@ Read input data register again
+    TST R1, #1              	@ Test bit 0 (USER button)
+    BNE button_not_pressed  	@ If not pressed anymore, branch
+
+    @ Button is still pressed - wait for release
+wait_for_release:
+    LDR R1, [R7, #IDR]			@ Read input data register
+    TST R1, #1
+    BEQ wait_for_release    	@ If still pressed, keep waiting
+
+    @ Add a small delay after release
+    LDR R4, =DEBOUNCE_DELAY
+
+release_debounce_loop:
+    SUBS R4, R4, #1
+    BNE release_debounce_loop
+
+    @ Button passed debounce check
+    MOV R0, #1              	@ Return 1 (button pressed)
+    B button_check_exit
+
+button_not_pressed:
+    MOV R0, #0              	@ Return 0 (button not pressed)
+
+button_check_exit:
+    POP {R1-R4, LR}         	@ Restore registers
+    BX LR                   	@ Return
+```
+Using this function will ensure that the button has been released before starting other functions.
 
 #### LEDs
 ```
