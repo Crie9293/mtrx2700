@@ -455,3 +455,75 @@ This exercise uses ARPE and ARR to make a highly accurate delay function entirel
 
 
 ## Exercise 5
+This final exercise essentially requires us to implement all of the previous modules. To do this, we have to connect the two microcontrollers so that they can communicate with each other. We do this by connecting the UART pins to each other (TX & RX) and both grounds should also be connected. 
+
+
+
+### Receiving Message
+Using the USART1, we receive the message from the PC as we did in Exercise 3b. We then store this messsage in the register to be passed on to another function to check whether or not the message is a palindrome.
+
+### Palindrome Detection
+This segment uses the code from Exercise 1b. Using a register to store data of whether or not the message is a palindrome, we can then decide to encode this message in caesar cipher or not. If it is a palindrome, we pass the message to the caesar cipher function and if not, it goes directly to the transmitting function.
+
+### Caesar Cipher
+Using the code from Exercise 1c, we can encode the messages in caesar cipher with a defined value. This value can be changed. After iterating through all the characters and encoding them, it will then be passed on to the transmitting function.
+
+### Transmitting Message
+Here, the USART1 transmit the message to another microcontroller using the UART module. This is done like in Exercise 3a.
+
+
+### Deciphering Message
+Since the message was encoded before transmitting, we decipher it using the same caesar function as above but with the opposite signed value. Here is an example:
+```
+MOV R2, #-1	@ value of the caesar cypher for ENCODING
+MOV R2, #1	@ value of the caesar cypher to DECIPHER
+B caesar_cypher
+```
+Another thing to note is that since we are using the same caesar_cypher function as above to decipher to message, we need to set a 'mode' value in one of the registers to know that this is done for decicphering, not encoding. If not, it will be passed again onto the transmitting function. Once it has been deciphered, we pass it on to the LED function
+
+### LED Vowel / Consonants
+Unlike Exercise 2d, we now use our timer to switch between the vowel and consonant counts. Therefore, we are integrating our timer module in here as well.
+```
+vowel_LED:
+	LDR R6, =GPIOE
+	STRB R5, [R6, #ODR + 1]		@ Display vowel
+    LDR R2, [R0, #TIM_CNT]
+    CMP R2, R9	 			@ check if reached delay time
+    BLT vowel_LED	 		@ if CNT < delay, loop
+	
+    //MOV R2, #0                   	@ stop timer
+    //STR R2, [R0, #TIM_CR1]       	@ disable TIM2
+    
+consonant_LED:
+	LDR R6, =GPIOE
+	STRB R3, [R6, #ODR + 1]		@ Display consonant
+	LDR R2, [R0, #TIM_CNT]
+	CMP R2, R1			@ check if reached delay time
+    	BLT consonant_LED
+	B vowel_LED
+```
+Here, we put a delay function between storing R5 and R3 in the LED bits which are the vowel and consonant count respectively. The logic behind is that if the time count is not below the delay, it will keep on looping its own function. The delay period can be modified in the code shown below:
+```
+MOV R9, #500000   @ 1ms delay
+
+    LDR R0, =RCC	@ load the base adress for the timer
+    LDR R2, [R0, #APB1ENR]    @ load peripheral control clock register
+	  ORR R2, 1 << TIM2EN      @ enable tim2 flag
+    STR R2, [R0, #APB1ENR]
+
+	LDR R0, =TIM2
+    MOV R2, #7999  @ set prescaler
+    STR R2, [R0, #TIM_PSC]
+
+    LDR R0, =TIM2
+    STR R1, [R0, #TIM_ARR]	@ store auto-reload value
+
+    MOV R2, #0
+    STR R2, [R0, #TIM_CNT]	@ reset and clear the counter
+
+    MOV R2, #(1 << 7)
+    STR R2, [R0, #TIM_CR1]	@ Enable ARPE bit
+
+    MOV R2, #1
+    STR R2, [R0, #TIM_CR1]	@start the timer
+```
