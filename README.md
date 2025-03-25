@@ -17,12 +17,12 @@
 * Exercise 3C: Daniel
 * Exercise 3D: Nicholas
 * Exercise 3E: Nicholas & Daniel
-* Exercise 4A: Callum & Helen
+* Exercise 4A: Callum & Qianhui
 * Exercise 4B: Callum
 * Exercise 4C: Callum
 * Exercise 5: Callum, Nicholas and Daniel
 * Documentation: Everyone
-* Minutes: Helen and Daniel
+* Minutes: Qianhui and Daniel
   
 ### Reponsibilities
 We assigned individual questions to either one or two group members. They would complete them generally alone and then compare solutions as well as explain their code to the rest of the group. For the more complicated questions towards the end such as 5 and for documentation we completed them together at PNR.
