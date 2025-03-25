@@ -1,0 +1,467 @@
+.syntax unified
+.thumb
+
+
+
+.section .data
+buffer:     .space 100         @ Buffer for received string
+shift:      .word 3            @ Caesar cipher shift
+vowel_cnt:  .word 0            @ Count of vowels
+cons_cnt:   .word 0            @ Count of consonants
+
+.section .text
+.global main
+
+main:
+    BL initialise_power
+    BL change_clock_speed
+    BL enable_peripheral_clocks
+    BL enable_uart
+
+    LDR R1, =buffer
+    BL receive_string_uart1
+
+    LDR R1, =buffer
+    BL Palindrome
+
+    CMP R0, #0
+    BEQ send_unmodified
+
+    @ if palindrome, apply Caesar cipher
+    LDR R1, =buffer
+    LDR R2, =shift
+    LDR R2, [R2]
+    BL caeser_cypher
+
+send_unmodified:
+    LDR R1, =buffer
+    BL send_string_uart2
+
+    @ (second board)
+    LDR R1, =buffer
+    BL receive_string_uart2
+
+    LDR R1, =buffer
+    LDR R2, =shift
+    LDR R2, [R2]
+    NEG R2, R2
+    BL caeser_cypher
+
+    LDR R1, =buffer
+    BL count_vowels_consonants
+
+    BL display_leds_loop
+
+    B . @ infinite loop
+
+@ ----------------------------
+@ UART Receive Function (until '\n')
+receive_string_uart1:
+    LDR R2, =UART_ALT
+    MOV R3, #0
+recv_loop1:
+    LDR R4, [R2, #USART_ISR]
+    TST R4, #32
+    BEQ recv_loop1
+
+    LDRB R4, [R2, #USART_RDR]
+    STRB R4, [R1, R3]
+    CMP R4, #'\n'
+    BEQ recv_done1
+    ADD R3, R3, #1
+    B recv_loop1
+recv_done1:
+    BX LR
+
+receive_string_uart2:
+    LDR R2, = UART_ALT     @ Replace with actual UART2 address
+    MOV R3, #0
+recv_loop2:
+    LDR R4, [R2, #USART_ISR]
+    TST R4, #32
+    BEQ recv_loop2
+    LDRB R4, [R2, #USART_RDR]
+    STRB R4, [R1, R3]
+    CMP R4, #'\n'
+    BEQ recv_done2
+    ADD R3, R3, #1
+    B recv_loop2
+recv_done2:
+    BX LR
+
+@ ----------------------------
+@ Palindrome check
+Palindrome:
+
+    MOV R2, R1			@R2:pointer to iterate to end
+
+find_end:
+    LDRB R3, [R2], #1	@Load byte and move pointer forward
+    CMP R3, #0			@check for \0
+    BNE find_end		@loop until end of the string
+
+    SUB R2, R2, #2		@iterate backwards
+    MOV R4, R1			@pointer to the start of the string
+    MOVS R7, #1			@set as palindrome
+
+check_palindrome:
+    CMP R4, R2			@compare R4 and R2
+    BX LR
+
+    LDRB R5, [R4]		@ Load char from start
+    LDRB R6, [R2]		@ Load char from end
+    CMP R5, R6			@check if start and back of word is same
+    BNE not_palindrome	@If different, not a palidrome
+
+    ADD R4, R4, #1		@move start forward
+    SUB R2, R2, #1		@move end backward
+    B check_palindrome	@repeat check
+
+not_palindrome:
+    MOVS R7, #0			@set as not palindrome
+
+
+@ ----------------------------
+@ Caesar Cipher
+caeser_cypher:
+    LDRB R3,[R1]
+    CMP R3,#0	@check for \0
+    BEQ end
+    CMP R3, #'Z'
+    BLE uppercase	@check if uppercase or lowercase
+
+upper:
+    SUB R4, R4, #'A'
+    ADD R4, R4, R2
+    MOV R5, #26
+    UDIV R6, R4, R5
+    MLS R4, R6, R5, R4
+    ADD R4, R4, #'A'
+Iterate:
+	STRB R3, [R1]	@store string
+    ADD R1, R1, #1	@iterate string
+    B caeser_cypher
+
+BranchFwd:
+	SUB R3, R3, #26	@go to start of alphabet
+	B Iterate
+
+BranchBkwd:
+	ADD R3, R3, #26	@go to end of alphabet
+	B Iterate
+
+
+@ ----------------------------
+@ UART Transmit
+send_string_uart2:
+    LDR R2, =UART_ALT
+    MOV R3, #0
+send_loop:
+    LDRB R4, [R1, R3]
+    CMP R4, #0
+    BEQ send_done
+wait_txe:
+    LDR R5, [R2, #USART_ISR]
+	TST R5, #128
+    BEQ wait_txe
+    STRB R4, [R2, #USART_TDR]
+    ADD R3, R3, #1
+    B send_loop
+send_done:
+    BX LR
+
+@ ----------------------------
+@ Count Vowels and Consonants
+count_vowels_consonants:
+    MOV R2, #0
+    MOV R3, #0
+loop_count:
+    LDRB R4, [R1, R2]
+    CMP R4, #0
+    BEQ count_done
+    CMP R4, #'A'
+    BLT next_char
+    CMP R4, #'Z'
+    BL uppercase
+    CMP R4, #'a'
+    BLT next_char
+    CMP R4, #'z'
+    BGT next_char
+
+lowercase:
+	ADD R3, R3, R2	@add cypher value
+	CMP R3, #'z'
+	BGT BranchFwd	@branch back to 'a' if past 'z'
+	CMP R3, #'a'
+	BLT BranchBkwd	@branch back to 'z' if past 'a'
+	B Iterate
+
+uppercase:
+	ADD R3, R3, R2	@add cypher value
+	CMP R3, #'Z'
+	BGT BranchFwd	@branch back to 'A' if past 'Z'
+	CMP R3, #'A'
+	BLT BranchBkwd	@branch back to 'Z' if past 'A'
+	B Iterate
+inc_v:
+    LDR R5, =vowel_cnt
+    LDR R6, [R5]
+    ADD R6, R6, #1
+    STR R6, [R5]
+    B next_char
+inc_c:
+    LDR R5, =cons_cnt
+    LDR R6, [R5]
+    ADD R6, R6, #1
+    STR R6, [R5]
+next_char:
+    ADD R2, R2, #1
+    B loop_count
+count_done:
+    BX LR
+
+@ ----------------------------
+@ Display using LEDs (simplified)
+display_leds_loop:
+    LDR R0, =GPIOD
+    LDR R1, =vowel_cnt
+    LDR R2, [R1]
+    STR R2, [R0, #0x14] @ ODR
+    BL delay_500ms
+    LDR R1, =cons_cnt
+    LDR R2, [R1]
+    STR R2, [R0, #0x14] @ ODR
+    BL delay_500ms
+    B display_leds_loop
+
+@ Dummy delay loop for 500ms
+@ Replace with hardware timer
+@ Use calibrated loop if needed
+delay_500ms:
+    LDR R1, =0x3FFFFF
+wait_loop:
+    SUBS R1, R1, #1
+    BNE wait_loop
+    BX LR
+
+
+
+
+.equ UART_ALT, 0x40004C00   @ UART4 base address
+@ base register for resetting and clock settings
+.equ RCC, 0x40021000
+.equ AHBENR, 0x14	@ register for enabling clocks
+.equ APB1ENR, 0x1C
+.equ APB2ENR, 0x18
+.equ AFRH, 0x24
+.equ AFRL, 0x20
+.equ RCC_CR, 0x00 @ control clock register
+.equ RCC_CFGR, 0x04 @ configure clock register
+
+
+@ specific base address for the desired UART to use
+@  find this in the peripheral register memory boundary in the big manual
+.equ UART, 0x40013800
+
+@ specific bit to enable this UART
+.equ UART_EN, 14
+
+@ register addresses and offsets for general UARTs
+.equ USART_CR1, 0x00
+.equ USART_BRR, 0x0C
+.equ USART_ISR, 0x1C @ UART status register offset
+.equ USART_ICR, 0x20 @ UART clear flags for errors
+
+.equ UART_TE, 3	@ transmit enable bit
+.equ UART_RE, 2	@ receive enable bit
+.equ UART_UE, 0	@ enable bit for the whole UART
+.equ UART_ORE, 3 @ Overrun flag
+.equ UART_FE, 1 @ Frame error
+
+.equ UART_ORECF, 3 @ Overrun clear flag
+.equ UART_FECF, 3 @ Frame error clear flag
+
+
+@ different UARTs use different GPIOs for the pins
+.equ GPIOA, 0x48000000	@ base register for GPIOA (pa0 is the button)
+.equ GPIOB, 0x48000400	@ base register for GPIOA (pa0 is the button)
+.equ GPIOC, 0x48000800	@ base register for GPIOA (pa0 is the button)
+.equ GPIOD, 0x48000C00	@ base register for GPIOD (pe8-15 are the LEDs)
+.equ GPIOE, 0x48001000	@ base register for GPIOE (pe8-15 are the LEDs)
+
+.equ GPIOA_ENABLE, 17	@ enable bit for GPIOA
+.equ GPIOB_ENABLE, 18	@ enable bit for GPIOB
+.equ GPIOC_ENABLE, 19	@ enable bit for GPIOC
+.equ GPIOD_ENABLE, 20	@ enable bit for GPIOD
+.equ GPIOE_ENABLE, 21	@ enable bit for GPIOE
+
+
+.equ GPIO_MODER, 0x00	@ set the mode for the GPIO
+.equ GPIO_OSPEEDR, 0x08	@ set the speed for the GPIO
+
+@ transmitting and receiving data
+.equ UART_TXE, 7	@ a new byte is ready to read
+.equ USART_TDR, 0x28	@ a new byte is ready to read
+
+.equ UART_RXNE, 5	@ a new byte is ready to read
+.equ USART_RDR, 0x24	@ a new byte is ready to read
+.equ USART_RQR, 0x18
+.equ UART_RXFRQ, 3	@ a new byte is ready to read
+
+@ setting the clock speed higher using the PLL clock option
+.equ HSEBYP, 18	@ bypass the external clock
+.equ HSEON, 16 @ set to use the external clock
+.equ HSERDY, 17 @ wait for this to indicate HSE is ready
+.equ PLLON, 24 @ set the PLL clock source
+.equ PLLRDY, 25 @ wait for this to indicate PLL is ready
+.equ PLLEN, 16 @ enable the PLL clock
+.equ PLLSRC, 16
+.equ USBPRE, 22 @ with PLL active, this must be set for the USB
+
+.equ PWREN, 28
+.equ SYSCFGEN, 0
+
+
+.syntax unified
+.thumb
+
+#include "definitions.s"
+
+
+
+@ function to enable the clocks for the peripherals we could be using (A, B, C, D and E)
+enable_peripheral_clocks:
+
+	@ load the address of the RCC address boundary (for enabling the IO clock)
+	LDR R0, =RCC
+
+	@ enable all of the GPIO peripherals in AHBENR
+	LDR R1, [R0, #AHBENR]
+	ORR R1, 1 << GPIOE_ENABLE | 1 << GPIOD_ENABLE | 1 << GPIOC_ENABLE | 1 << GPIOB_ENABLE | 1 << GPIOA_ENABLE  @ enable GPIO
+	STR R1, [R0, #AHBENR]
+
+	BX LR @ return
+
+
+
+@ function to enable a UART device - this requires:
+@  setting the alternate pin functions for the UART (select the pins you want to use)
+@
+@ BAUD rate needs to change depending on whether it is 8MHz (external clock) or 24MHz (our PLL setting)
+enable_uart:
+
+	@make a note about the different ways that we set specific bits in this configuration section
+
+	@ select which UART you want to enable
+	LDR R0, =GPIOC
+
+	@ set the alternate function for the UART pins (what ever you have selected)
+	LDR R1, =0x77
+	STRB R1, [R0, AFRL + 2]
+
+	@ modify the mode of the GPIO pins you want to use to enable 'alternate function mode'
+	LDR R1, [R0, GPIO_MODER]
+	ORR R1, 0xA00 @ Mask for pins to change to 'alternate function mode'
+	STR R1, [R0, GPIO_MODER]
+
+	@ modify the speed of the GPIO pins you want to use to enable 'high speed'
+	LDR R1, [R0, GPIO_OSPEEDR]
+	ORR R1, 0xF00 @ Mask for pins to be set as high speed
+	STR R1, [R0, GPIO_OSPEEDR]
+
+	@ Set the enable bit for the specific UART you want to use
+	@ Note: this might be in APB1ENR or APB2ENR
+	@ you can find this out by looking in the datasheet
+	LDR R0, =RCC @ the base address for the register to turn clocks on/off
+	LDR R1, [R0, #APB2ENR] @ load the original value from the enable register
+	ORR R1, 1 << UART_EN  @ apply the bit mask to the previous values of the enable the UART
+	STR R1, [R0, #APB2ENR] @ store the modified enable register values back to RCC
+
+	@ this is the baud rate
+	MOV R1, #0x46 @ from our earlier calculations (for 8MHz), store this in register R1
+	LDR R0, =UART @ the base address for the register to turn clocks on/off
+	STRH R1, [R0, #USART_BRR] @ store this value directly in the first half word (16 bits) of
+							  	 @ the baud rate register
+
+	@ we want to set a few things here, lets define their bit positions to make it more readable
+	LDR R0, =UART @ the base address for the register to set up the specified UART
+	LDR R1, [R0, #USART_CR1] @ load the original value from the enable register
+	ORR R1, 1 << UART_TE | 1 << UART_RE | 1 << UART_UE @ make a bit mask with a '1' for the bits to enable,
+													   @ apply the bit mask to the previous values of the enable register
+
+	STR R1, [R0, #USART_CR1] @ store the modified enable register values back to RCC
+
+	BX LR @ return
+
+
+
+@ set the PLL (clocks are described in page 125 of the large manual)
+change_clock_speed:
+@ step 1, set clock to HSE (the external clock)
+	@ enable HSE (and wait for complete)
+	LDR R0, =RCC @ the base address for the register to turn clocks on/off
+	LDR R1, [R0, #RCC_CR] @ load the original value from the enable register
+	LDR R2, =1 << HSEBYP | 1 << HSEON @ make a bit mask with a '1' in the 0th bit position
+	ORR R1, R2 @ apply the bit mask to the previous values of the enable register
+	STR R1, [R0, #RCC_CR] @ store the modified enable register values back to RCC
+
+	@ wait for the changes to be completed
+wait_for_HSERDY:
+	LDR R1, [R0, #RCC_CR] @ load the original value from the enable register
+	TST R1, 1 << HSERDY @ Test the HSERDY bit (check if it is 1)
+	BEQ wait_for_HSERDY
+
+@ step 2, now the clock is HSE, we are allowed to switch to PLL
+	@ clock is set to External clock (external crystal) - 8MHz, can enable the PLL now
+	LDR R1, [R0, #RCC_CFGR] @ load the original value from the enable register
+	LDR R2, =1 << 20 | 1 << PLLSRC | 1 << 22 @ the last term is for the USB prescaler to be 1
+	ORR R1, R2  @ set PLLSRC (use PLL) and PLLMUL to 0100 - bit 20 is 1 (set speed as 6x faster)
+				@ see page 140 of the large manual for options
+				@ NOTE: cannot go faster than 72MHz)
+	STR R1, [R0, #RCC_CFGR] @ store the modified enable register values back to RCC
+
+	@ enable PLL (and wait for complete)
+	LDR R0, =RCC @ the base address for the register to turn clocks on/off
+	LDR R1, [R0, #RCC_CR] @ load the original value from the enable register
+	ORR R1, 1 << PLLON @ apply the bit mask to turn on the PLL
+	STR R1, [R0, #RCC_CR] @ store the modified enable register values back to RCC
+
+wait_for_PLLRDY:
+	LDR R1, [R0, #RCC_CR] @ load the original value from the enable register
+	TST R1, 1 << PLLRDY @ Test the HSERDY bit (check if it is 1)
+	BEQ wait_for_PLLRDY
+
+@ step 3, PLL is ready, switch over the system clock to PLL
+	LDR R0, =RCC  @ load the address of the RCC address boundary (for enabling the IO clock)
+	LDR R1, [R0, #RCC_CFGR]  @ load the current value of the peripheral clock registers
+	MOV R2, 1 << 10 | 1 << 1  @ some more settings - bit 1 (SW = 10)  - PLL set as system clock
+									   @ bit 10 (HCLK=100) divided by 2 (clock is faster, need to prescale for peripherals)
+	ORR R1, R2	@ Set the values of these two clocks (turn them on)
+	STR R1, [R0, #RCC_CFGR]  @ store the modified register back to the submodule
+
+	LDR R1, [R0, #RCC_CFGR]  @ load the current value of the peripheral clock registers
+	ORR R1, 1 << USBPRE	@ Set the USB prescaler (when PLL is on for the USB)
+	STR R1, [R0, #RCC_CFGR]  @ store the modified register back to the submodule
+
+	BX LR @ return
+
+
+
+@ initialise the power systems on the microcontroller
+@ PWREN (enable power to the clock), SYSCFGEN system clock enable
+initialise_power:
+
+	LDR R0, =RCC @ the base address for the register to turn clocks on/off
+
+	@ enable clock power in APB1ENR
+	LDR R1, [R0, #APB1ENR]
+	ORR R1, 1 << PWREN @ apply the bit mask for power enable
+	STR R1, [R0, #APB1ENR]
+
+	@ enable clock config in APB2ENR
+	LDR R1, [R0, #APB2ENR]
+	ORR R1, 1 << SYSCFGEN @ apply the bit mask to allow clock configuration
+	STR R1, [R0, #APB2ENR]
+
+	BX LR @ return
+
