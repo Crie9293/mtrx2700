@@ -13,8 +13,8 @@
 
 @ Define the initial LED state
 
-led_pattern: .word 0x00000100 @ PE8initial state
-direction: .word 0x00000001 @ direction (1=increase，0=decrease)
+led_pattern: .word 0x00000100 		@ PE8initial state
+direction: .word 0x00000001 		@ direction (1=increase，0=decrease)
 .text
 
 
@@ -22,90 +22,83 @@ main:
 
  BL enable_peripheral_clocks
  BL initialise_discovery_board
- LDR R4, =GPIOA @ Button port PAO
- LDR R5, =led_pattern @ pointer to LED pattern
- LDR R6, [R5] @current LED direction
+ LDR R4, =GPIOA 			@ Button port PAO
+ LDR R5, =led_pattern 		@ pointer to LED pattern
+ LDR R6, [R5] 				@current LED direction
 
- LDR R7, =direction @ pointer to direaction
+ LDR R7, =direction 		@ pointer to direaction
 
- LDR R8, [R7] @ load current direction
- MOV R9, #1 @ LED counter
+ LDR R8, [R7] 				@ load current direction
+ MOV R9, #1 				@ LED counter
 
 program_loop:
 
  @ continue display LED
  LDR R0, =GPIOE
- STRH R6, [R0, #ODR]
+ STRH R6, [R0, #ODR]		@ Output current LED pattern
 
  @ check button stated
 
  LDR R3, [R4, #IDR]
-
  TST R3, #1
+ BEQ program_loop			@if button is not pressed, continue loop
 
- BEQ program_loop
-
- @ debounce
+ @ debounce delay
  BL delay_debounce
 
 
- @ update counter base on directioin
+ @ update direction and counter
  CMP R8, #1
  BEQ increment_mode
  B decrement_mode
 
+@increment mode function
 increment_mode:
  ADD R9, #1
  CMP R9, #8
  BLS update_leds
 
  @ change direction when reached max
- MOV R8, #0 @ change to decrease
-
- STR R8, [R7] @ store new direction
+ MOV R8, #0 			@ change to decrease
+ STR R8, [R7] 			@ store new direction
 
  B update_leds
 
+@decrement mode function
 decrement_mode:
-
  SUBS R9, #1
  BHI update_leds
  @ change direction when reached min
- MOV R8, #1 @ change to increase
+ MOV R8, #1 			@ change to increase
  STR R8, [R7]
- MOV R9, #1 @ reset counter
- LDR R6, =0x00000100 @ reset LED pattern
+ MOV R9, #1 			@ reset counter
+ LDR R6, =0x00000100 	@ reset LED pattern
  STR R6, [R5]
 
  B program_loop
 
-update_leds:
-
  @ update new LED mode
-
+update_leds:
  CMP R8, #1
  BEQ build_increment
 
  B build_decrement
 
+
+
 build_increment:
-
- LSL R6, #1 @ Shift left to add more LED
-
- ORR R6, #0x00000100 @ Keeps lowest LED on
-
+ LSL R6, #1 			@ Shift left to add more LED
+ ORR R6, #0x00000100 	@ Keeps lowest LED on
  STR R6, [R5]
-
-
  B apply_delay
 
 build_decrement:
-
- LSR R6, #1 @ shift right to turn off last LED
- ORR R6, #0x00008000 @ highest bit unchange
- BIC R6, #0x00008000 @ turn highest bit off
+ LSR R6, #1 			@ shift right to turn off last LED
+ ORR R6, #0x00008000 	@ highest bit unchange
+ BIC R6, #0x00008000 	@ turn highest bit off
  STR R6, [R5]
 
+@apply delay delay function and return to program loop
 apply_delay:
  BL delay_function
  B program_loop
@@ -118,7 +111,7 @@ debounce:
  SUBS R10, #1
  BNE debounce
  BX LR
-@ delay
+
 
 delay_function:
  LDR R10, =0x2FFFF
