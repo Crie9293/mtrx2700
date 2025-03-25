@@ -9,7 +9,9 @@ ascii_string: .asciz "Hello!"
 .text
 main:
     LDR  R1, =ascii_string   @ R1 points to the string
-    MOV  R2, #0              @ Conversion mode: 0 = convert to lowercase; non-0 = convert to uppercase
+    
+    @ Conversion mode: 0 = convert to lowercase; non-0 = convert to uppercase
+    MOV  R2, #0              
 
 loop:
     LDRB R4, [R1]           @ Load the current character into R4
@@ -20,24 +22,25 @@ loop:
     BEQ  conv_lower        @ If mode is 0, convert uppercase to lowercase
 
     @ Mode non-zero: convert lowercase to uppercase
-    CMP  R4, #'a'
-    BLT  store_char
-    CMP  R4, #'z'
-    BGT  store_char
-    SUB  R4, R4, #32       @ Convert to uppercase
+    
+    CMP  R4, #'a'			
+    BLT  store_char			@If char < 'a', skip,
+    CMP  R4, #'z'			
+    BGT  store_char			@ If char > 'z', skip
+    SUB  R4, R4, #32       	@ Convert to uppercase (ASCII - 32)
     B    store_char
 
 conv_lower:
     CMP  R4, #'A'
-    BLT  store_char
+    BLT  store_char			@ If char < 'A', skip
     CMP  R4, #'Z'
-    BGT  store_char
-    ADD  R4, R4, #32       @ Convert to lowercase
+    BGT  store_char			@ If char > 'Z', skip
+    ADD  R4, R4, #32       	@ Convert to lowercase (ASCII + 32)
 
 store_char:
-    STRB R4, [R1]          @ Store the converted character back in memory
-    ADD  R1, R1, #1        @ Move to the next character
+    STRB R4, [R1]          @ Store converted char
+    ADD  R1, R1, #1        @ Move to next char
     B    loop
 
 done:
-    B    done              @ Infinite loop (or add exit logic as needed)
+    B    done              @ Infinite loop
