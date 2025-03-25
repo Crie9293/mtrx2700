@@ -4,34 +4,34 @@
 .global main
 
 .data
-string1: .asciz "eeoo"
+string1: .asciz "eeoo"	@input string
 
 .text
 main:
-    LDR R1, =string1	
-    MOV R2, R1			@ascii string
+    LDR R1, =string1	@address of the string
+    MOV R2, R1			@R2:pointer to iterate to end
 
 find_end:
-    LDRB R3, [R2], #1	@iterate through string
-    CMP R3, #0			@find \0
-    BNE find_end
+    LDRB R3, [R2], #1	@Load byte and move pointer forward
+    CMP R3, #0			@check for \0
+    BNE find_end		@loop until end of the string
 
     SUB R2, R2, #2		@iterate backwards
-    MOV R4, R1
+    MOV R4, R1			@pointer to the start of the string
     MOVS R7, #1			@set as palindrome
 
 check_palindrome:
-    CMP R4, R2
-    BCS done			@check if iterations cross
+    CMP R4, R2			@compare R4 and R2
+    BCS done			
 
-    LDRB R5, [R4]		
-    LDRB R6, [R2]
+    LDRB R5, [R4]		@ Load char from start
+    LDRB R6, [R2]		@ Load char from end
     CMP R5, R6			@check if start and back of word is same
-    BNE not_palindrome
+    BNE not_palindrome	@If different, not a palidrome
 
-    ADD R4, R4, #1		
-    SUB R2, R2, #1		@iterate forwards and back
-    B check_palindrome
+    ADD R4, R4, #1		@move start forward
+    SUB R2, R2, #1		@move end backward
+    B check_palindrome	@repeat check
 
 not_palindrome:
     MOVS R7, #0			@set as not palindrome
