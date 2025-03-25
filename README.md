@@ -322,7 +322,6 @@ After storing the terminating character in the buffer, we branch to the transmit
 
 
 ### 3.e
-### 3.e
 For this exercise, we use one microcontroller connected to one computer to transmit, through UART4, characters to another microcontroller. This second microcontroller connected to a second computer reads these incoming character from UART4 and transmits them to USART1 where we can display them on a terminal emulator demonstrating they are now on the second computer.
 
 We split the code for 3e into two modules:
